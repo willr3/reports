@@ -1,0 +1,167 @@
+[
+    {
+        "name":"techempower",
+        "accessors":[
+            {"name":"start","accessor":"$.startTime"},
+            {"name":"stop","accessor":"$.completionTime"},
+            {"name":"id","accessor":"$.name"},
+            {"name":"frameworks","accessor":"$.frameworks"},
+            {"name":"tests","accessor":"(json) => (Object.entries(json.rawData).filter(v=>v[0]!==\"commitCounts\" && v[0]!==\"slocCounts\" && Object.getOwnPropertyNames(v[1]).length > 0).map(v=>v[0]))"}
+        ],
+        "table":[
+            {"Header": "id", "accessor": "data.id"},
+            {"Header": "start", "accessor": "({data: {start, stop}},rowIndex) => DateTime.fromMillis(start).toFormat(\"yyyy-MM-dd HH:mm:ss\")"},
+            {"Header": "duration", "accessor": "({data: {start, stop}},rowIndex) => DateTime.fromMillis(stop).diff(DateTime.fromMillis(start)).toFormat(\"hh:mm:ss\")" },
+            {
+                "Header": "frameworks", "accessor": "data.frameworks",
+                "Cell":"(arg)=>{\nconst { cell: {value} } = arg\nconst toRender = Array.isArray(value) ? value : [value]\nreturn value.map((v,i)=>(<span key={i} className=\"pf-c-badge pf-m-read\">{v}</span>))\n}"
+            },
+            {
+                "Header": "tests", "accessor": "data.tests",
+                "Cell":"(arg)=>{\nconst { cell: {value} } = arg\nconst toRender = Array.isArray(value) ? value : [value]\nreturn value.map((v,i)=>(<span key={i} className=\"pf-c-badge pf-m-read\">{v}</span>))\n}"
+            }
+        ]
+    },
+    {
+        "name":"hyperfoil",
+        "accessors":[
+            {"name":"failureCount","accessor":"$.hyperfoil.failures.length"},
+            {"name":"start","accessor":"$.hyperfoil.info.startTime"},
+            {"name":"stop","accessor":"$.hyperfoil.info.terminateTime"},
+            {"name":"version","accessor":"$.hyperfoil.version"},
+            {"name":"agentCount","accessor":"$.hyperfoil.agents.length"},
+            {"name":"statCount","accessor":"$.hyperfoil.stats.length"}
+        ],
+        "table":{
+            "columns":[
+            {
+                "Header":"name","accessor":"file",
+                "Cell":"(arg)=>{\nconst ( cell: {value} } = arg\nreturn {component:\"NavLink\",to:`/report/hyperfoil?q=${value}`,activeClassName:\"pf-m-current\",children:value}}"
+            },
+            {
+                "Header":"duration",
+                "accessor":"(row,rowIndex)=>{\nconst {data: {start, stop}} = row\nreturn DateTime.fromMillis(stop).diff(DateTime.fromMillis(start)).toFormat(\"hh:mm:ss\")}"
+            },
+            {"Header":"version","accessor":"data.version"},
+            {"Header":"agents","accessor":"data.agentCount"},
+            {"Header":"stats","accessor":"data.statCount"},
+            {"Header":"failures","accessor":"data.failureCount"}
+            ],
+            "details":[
+                "({row:{ original:{ data:{ url=''}}}})=>`<div style=\"font-size: 85%\">${url}</div>`",
+                "({row:{ original: {data:{ files=[]}}}})=>(files.map(f=>`<div style=\"font-size: 85%\">${f}</div>`).join(''))"
+                
+            ]
+            
+        },
+        "reports":[
+            {
+                "name":"",
+                "min":1,
+                "max":6,
+                "pages":[
+                    {
+                        "name":"",
+                        "group":"",
+                        "cells":[
+                            {
+                                "type":"javascript",
+                                "content":"(datasets)=>{data.map((d,i,a)=>"
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+
+    },
+    {
+        "name":"webprofile",
+        "accessors":[
+            {"name":"scale","accesor":"$.faban.run.SPECjEnterprise['fa:runConfig']['fa:scale']['text()']"},
+            {"name":"fabanId","accesor":"$.qdup.state.FABAN_RUN_ID"},
+            {"name":"start","accesor":"$.qdup.timestamps.start"},
+            {"name":"files","accesor":"$.files..name"},
+            {"name":"times","accesor":"(json) => (\njsonpath.value(json, \"$.faban.run.SPECjEnterprise['fa:runConfig']['fa:runControl']['fa:rampUp']['text()']\") +\n\":\" + jsonpath.value(json, \"$.faban.run.SPECjEnterprise['fa:runConfig']['fa:runControl']['fa:steadyState']['text()']\") +\n\":\" + jsonpath.value(json, \"$.faban.run.SPECjEnterprise['fa:runConfig']['fa:runControl']['fa:rampDown']['text()']\"))"},
+            {"name":"url","accesor":"$.qdup.state.RUNTIME_URL"},
+            {"name":"runtimeName","accesor":"$.qdup.state.RUNTIME_NAME"},
+            {"name":"stop","accesor":"$.qdup.timestamps.start"}
+        ],
+        "table":[
+            {"Header":"name","accessor":"file",
+                "Cell":"(arg)=>{\nconst { cell: {value} } = arg\nreturn (`<a href=\"http://benchserver1.perf.lab.eng.rdu2.redhat.com:8888/blue/organizations/jenkins/qdup/detail/qdup/${value}/artifacts\" target=\"_blank\" rel=\"noopener noreferrer\">${value.substring(value.lastIndexOf('.')+1)}</a>`)}"
+            },
+            {"Header":"runtime","accessor":"data.runtimeName"},
+            {"Header":"scale","accessor":"data.scale"},
+            {"Header":"faban","accessor":"data.fabanId",
+                "Cell":"(arg)=>{\nconst { cell: {value} } = arg\nreturn (`<a href=\"http://benchclient1.perf.lab.eng.rdu2.redhat.com:9980/resultframe.jsp?runId=${value}&result=summary.xml\" target=\"_blank\" rel=\"noopener noreferrer\">${value.substring(value.lastIndexOf('.')+1)}</a>`)}"
+            },
+            {"Header":"start","accessor":"data.start",
+                "Cell":"({ cell: {value} })=>(value ? (DateTime.fromMillis(value).toFormat(\"yyyy-MM-dd HH:mm:ss\")) : \"--\")"
+            },
+            {"Header":"times","accessor":"data.times"},
+            {"Header":"files","accessor":"data.files",
+                "Cell":"({ cell: {value}, row: {original} })=>{\nconst toRender = Array.isArray(value) ? value : [value]\nreturn toRender.map(v=>`<div>${v}</div>`).join('')}"
+            }
+        ]
+    },
+    {
+        "name":"specjEnterprise",
+        "accessors":[
+            {"name":"scale","accesor":"$.faban.run.SPECjEnterprise['fa:runConfig']['fa:scale']['text()']"},
+            {"name":"fabanId","accesor":"$.qdup.state.FABAN_RUN_ID"},
+            {"name":"start","accesor":"$.qdup.timestamps.start"},
+            {"name":"files","accesor":"$.files..name"},
+            {"name":"times","accesor":"(json) => (\njsonpath.value(json, \"$.faban.run.SPECjEnterprise['fa:runConfig']['fa:runControl']['fa:rampUp']['text()']\") +\n\":\" + jsonpath.value(json, \"$.faban.run.SPECjEnterprise['fa:runConfig']['fa:runControl']['fa:steadyState']['text()']\") +\n\":\" + jsonpath.value(json, \"$.faban.run.SPECjEnterprise['fa:runConfig']['fa:runControl']['fa:rampDown']['text()']\"))"},
+            {"name":"url","accesor":"$.qdup.state.RUNTIME_URL"},
+            {"name":"runtimeName","accesor":"$.qdup.state.RUNTIME_NAME"},
+            {"name":"stop","accesor":"$.qdup.timestamps.start"}            
+        ],
+        "table":[
+            {"Header":"name","accessor":"file",
+                "Cell":"(arg)=>{\nconst { cell: {value} } = arg\nreturn (`<a href=\"http://benchserver1.perf.lab.eng.rdu2.redhat.com:8888/blue/organizations/jenkins/qdup/detail/qdup/${value}/artifacts\" target=\"_blank\" rel=\"noopener noreferrer\">${value.substring(value.lastIndexOf('.')+1)}</a>`)}"
+            },
+            {"Header":"runtime","accessor":"data.runtimeName"},
+            {"Header":"scale","accessor":"data.scale"},
+            {"Header":"faban","accessor":"data.fabanId",
+                "Cell":"(arg)=>{\nconst { cell: {value} } = arg\nreturn (`<a href=\"http://benchclient1.perf.lab.eng.rdu2.redhat.com:9980/resultframe.jsp?runId=${value}&result=summary.xml\" target=\"_blank\" rel=\"noopener noreferrer\">${value.substring(value.lastIndexOf('.')+1)}</a>`)}"
+            },
+            {"Header":"start","accessor":"data.start",
+                "Cell":"({ cell: {value} })=>(value ? (DateTime.fromMillis(value).toFormat(\"yyyy-MM-dd HH:mm:ss\")) : \"--\")"
+            },
+            {"Header":"times","accessor":"data.times"},
+            {"Header":"files","accessor":"data.files",
+                "Cell":"({ cell: {value}, row: {original} })=>{\nconst toRender = Array.isArray(value) ? value : [value]\nreturn toRender.map(v=>`<div>${v}</div>`).join('')}"
+            }
+        ]
+    },
+    {
+        "name":"serverlessProjects",
+        "accessors":[
+            {"name":"start","accessor":"$.qdup.run.timestamps.start"},
+            {"name":"stop","accessor":"$.qdup.run.timestamps.stop"},
+            {"name":"duration","accessor":"(json)=>{\nconst start = jsonpath.value(json,\"$.qdup.run.timestamps.start\")\nconst stop = jsonpath.value(json,\"$.qdup.run.timestamps.stop\")\nconst rtrn = DateTime.fromMillis(stop).diff(DateTime.fromMillis(start)).toFormat(\"hh:mm:ss\")\nreturn rtrn;\n}"},
+            {"name":"times","accessor":"$.qdup.run.state.time.length"},
+            {"name":"namespaces","accessor":"$.qdup.run.state.NAMESPACE_COUNT"},
+            {"name":"services","accessor":"$.qdup.run.state.SERVICE_COUNT"},
+            {"name":"createNamespaces","accessor":"(json) => (\njson.qdup.run.profiles[\"scalelab-setup@f03-h01-000-r620\"].timers\n.filter(timer=>\ntimer.name.startsWith(\"Sh-await-callback\") && \ntimer.name.includes(\"kind: Namespace\")\n)\n)"},
+            {"name":"createServices","accessor":"(json) => (\njson.qdup.run.profiles[\"scalelab-setup@f03-h01-000-r620\"].timers\n.filter(timer=>\ntimer.name.startsWith(\"Sh-await-callback\") && \ntimer.name.includes(\"serving.knative.dev/v1alpha1\")\n)\n)"},
+            {"name":"files","accessor":"$.files..name"}
+        ],
+        "table":[
+            {"Header":"name","accessor":"file",
+                "Cell":"({ cell: {value} })=>({component:\"NavLink\",to:`/report/namespace?q=${value}`,activeClassName:\"pf-m-current\",children:value})"
+            },
+            {"Header":"duration","accessor":"data.duration"},
+            {"Header":"curls","accessor":"data.times"},
+            {"Header":"target namespaces","accessor":"data.namespaces"},
+            {"Header":"service/namespace","accessor":"data.services"},
+            {"Header":"created namespaces","accessor":"data.createNamespace",
+                "Cell":"({cell: {value}, row: {original} })=>value.length"
+            },
+            {"Header":"created services","accessor":"data.createService",
+                "Cell":"({cell: {value}, row: {original} })=>value.length"
+            }
+        ]
+    }
+]

@@ -1,0 +1,96 @@
+
+
+.panel-container {
+    /* border: 1px solid #ddd; */
+    display: flex;
+    flex-direction: column;
+}
+.panel-header, .panel-footer {
+    /* height:28px; */
+    /* height:36px; */
+}
+.panel-content {
+    display: flex;
+    flex: 1;
+    /* height: calc(100% - 28px); */
+    width: 100%;
+    position:relative;
+    padding: 0px 8px;
+}
+.chart-container {
+    height:100%;
+    width:100%;
+    position: relative;
+    display: flex;
+}
+.left-container, .right-container {
+    flex: 0 0 20px;
+    min-width: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    /*https://www.jimmybonney.com/articles/column_header_rotation_css/*/
+    /* transform: skew(45deg,0deg) */
+}
+.left-label, .right-label {
+  /* transform: translateX(-50%) translateY(-50%) rotate(-90deg);
+  top:50%; */
+  
+  /* transform: rotate(-90deg); */
+  /* transform-origin: 0 100%; */
+  /* bottom: 0;
+  position: absolute;
+  line-height: 25px;
+  font-size: 14px;
+  z-index: 10;
+  height: 25px;
+  width: 100%;
+  left: 25px; */
+  
+  font-size: 14px;
+  transform: rotate(-90deg);
+  white-space: nowrap;
+
+  /*https://www.jimmybonney.com/articles/column_header_rotation_css/ */
+  /* transform: skew(45deg,0deg) rotate(315deg); */
+    
+
+}
+.chart-content {
+    flex: 1;
+    min-width: 0; /*so it will shrink*/
+}
+.legend {
+    position:relative;
+}
+.legend-entry{
+    float: left;
+    white-space: nowrap;
+    padding-left: 10px;
+    position: relative;
+}
+.legend-entry.right{
+    float: right;
+}
+.legend-icon {
+    display: inline-block;
+    cursor: pointer;
+    white-space: nowrap;
+    /* font-size: 85%; */
+    text-align: left;
+    position: relative;
+    margin-right: 4px;
+    /* content:'&nbsp;'; */
+    width: 13px;
+    height: 13px;
+    border: 1px solid;
+    
+}
+.legend-text {
+    display: inline;
+    cursor: pointer;
+    white-space: nowrap;
+    /* font-size: 85%; */
+    text-align: left;
+}

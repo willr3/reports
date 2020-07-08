@@ -6,6 +6,24 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+#root{
+  height: 100%;
+}
+@media print  {
+  #root{
+    width: 842pt
+  }
+  .pf-c-page__header{
+    display: none !important;
+  }
+  #page-sidebar {
+    display: none !important;
+  }
+
+  .pf-c-page__main {
+    width: 842pt
+  }
+}
 
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',

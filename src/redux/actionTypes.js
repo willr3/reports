@@ -1,0 +1,1 @@
+export const GROUP_LOADED = "GROUP_LOADED"

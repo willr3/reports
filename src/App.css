@@ -36,3 +36,13 @@
     transform: rotate(360deg);
   }
 }
+div.diff{
+  font-size: smaller;
+  font-style: italic;
+}
+div[data-diff]:after {
+  content: attr(data-diff);
+}
+div[data-diff^="-"]:after {
+  color: red;
+}

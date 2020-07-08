@@ -1,0 +1,30 @@
+* {box-sizing: border-box;}
+
+* {
+    margin: 0;
+    padding: 0;
+ }
+
+.html2canvas-container { width: 3000px !important; height: 3000px !important; }
+
+.capture-container {
+    position: relative;
+}
+.capture-controls {
+    visibility: hidden;
+    position: absolute;
+    top: 0px;
+    right: 0px;
+    height: 36px;
+}
+.capture-container:hover .capture-controls{
+    visibility: visible;
+}
+/*https://github.com/niklasvh/html2canvas/issues/60*/
+/* 
+*.html2canvasreset{
+    overflow: visible !important;
+    width: auto !important;
+    height: auto !important;
+    max-height: auto !important;
+} */

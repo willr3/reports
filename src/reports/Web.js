@@ -660,17 +660,9 @@ function Web() {
   const location = useLocation();
   const [data, setData] = useState([])
   console.log("data", data);
-  useEffect(() => {
-    const q = qs.parse(location.search)
-    const names = (q.q && Array.isArray(q.q) ? q.q : [q.q]).filter(v => v) //removes undefined
-    const getIt = async () => {
-      const ary = await Promise.all(
-        names.map(name => axios.get(`/data/webProfile/${name}.json`))
-      ).then(v => v.map(d => ({ url: d.config.url, name: /*d.config.url.substring(0,4),*/  /(.*?)_web/.exec(jsonpath.query(d.data, `$.qdup.state.RUNTIME_NAME`)[0])[1], data: d.data })))
-      setData(ary)
-    }
-    getIt();
-  }, [location])
+  useEffect(
+    fetchSearch("webProfile", location.search, setData)
+    , [location.search, setData])
 
   const dstats = joinDstat(data, `$.benchserver4.dstat[?(@['epoch.epoch'])]`)
 

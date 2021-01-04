@@ -499,6 +499,7 @@ export default () => {
         ),
         []
     )
+    console.log(groupId,columns,columns[groupId])
     return (
         <Page header={Header} sidebar={Sidebar}>
             <PageSection isFilled={true}>
@@ -518,7 +519,7 @@ export default () => {
                         // }}
                         //selectedRows={selectedRows}
                         setSelectedRows={setSelectedRows}
-                        columns={columns[groupId]}
+                        columns={columns[groupId]||[]}
                         data={data}
                         initialSortBy={[{ id: 'file', desc: true }]}
                         renderRowSubComponent={renderRowSubComponent}

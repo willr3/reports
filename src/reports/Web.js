@@ -24,6 +24,7 @@ import '@patternfly/patternfly/patternfly.css'; //have to use this import to cus
 import reducer from '../domain/reducer';
 import '../App.css';
 
+import { fetchSearch } from '../redux/actions';
 import ChartContainer from '../components/ChartContainer';
 import { chartColors } from '../theme';
 
@@ -111,7 +112,7 @@ const gcCharts = (all, path) => {
     color: colors[colorNames[datumIndex]][2],
     fill: colors[colorNames[datumIndex]][2],
     type: 'rect',
-    value: datum.name
+    value: datum.data.qdup.state.RUNTIME_NAME
   }));
   return (
     <React.Fragment>
@@ -122,7 +123,7 @@ const gcCharts = (all, path) => {
             leftLabel="Mb"
             domainLabel="seconds"
             labels={all.length > 1 ? all.reduce((rtrn, datum, datumIndex) => {
-              rtrn[datum.name] = colors[colorNames[datumIndex]][2]
+              rtrn[datum.data.qdup.state.RUNTIME_NAME] = colors[colorNames[datumIndex]][2]
               return rtrn;
             }, {}) : false}
           >
@@ -154,7 +155,7 @@ const gcCharts = (all, path) => {
                   <Line
                     key={`${entry.name}-before`}
                     yAxisId={0}
-                    name={`${entry.name} before`}
+                    name={`${entry.data.qdup.state.RUNTIME_NAME} before`}
                     dataKey={`${entry.name}-before`}
                     stroke={colors[colorNames[entryIndex]][1]}
                     fill={colors[colorNames[entryIndex]][1]}
@@ -183,7 +184,7 @@ const gcCharts = (all, path) => {
             leftLabel="Mb"
             domainLabel="seconds"
             labels={all.length > 1 ? all.reduce((rtrn, datum, datumIndex) => {
-              rtrn[datum.name] = colors[colorNames[datumIndex]][2]
+              rtrn[datum.data.qdup.state.RUNTIME_NAME] = colors[colorNames[datumIndex]][2]
               return rtrn;
             }, {}) : false}
           >
@@ -215,7 +216,7 @@ const gcCharts = (all, path) => {
                   <Line
                     key={`${entry.name}-after`}
                     yAxisId={0}
-                    name={`${entry.name} after`}
+                    name={`${entry.data.qdup.state.RUNTIME_NAME} after`}
                     dataKey={`${entry.name}-after`}
                     stroke={colors[colorNames[entryIndex]][2]}
                     fill={colors[colorNames[entryIndex]][2]}
@@ -243,7 +244,7 @@ const gcCharts = (all, path) => {
             leftLabel="Mb"
             domainLabel="seconds"
             labels={all.length > 1 ? all.reduce((rtrn, datum, datumIndex) => {
-              rtrn[datum.name] = colors[colorNames[datumIndex]][2]
+              rtrn[datum.data.qdup.state.RUNTIME_NAME] = colors[colorNames[datumIndex]][2]
               return rtrn;
             }, {}) : false}
           >
@@ -275,7 +276,7 @@ const gcCharts = (all, path) => {
                   <Line
                     key={`${entry.name}-freed`}
                     yAxisId={0}
-                    name={`${entry.name} freed`}
+                    name={`${entry.data.qdup.state.RUNTIME_NAME} freed`}
                     dataKey={`${entry.name}-freed`}
                     stroke={colors[colorNames[entryIndex]][2]}
                     fill={colors[colorNames[entryIndex]][2]}
@@ -304,7 +305,7 @@ const gcCharts = (all, path) => {
             leftLabel="Mb"
             domainLabel="seconds"
             labels={all.length > 1 ? all.reduce((rtrn, datum, datumIndex) => {
-              rtrn[datum.name] = colors[colorNames[datumIndex]][2]
+              rtrn[datum.data.qdup.state.RUNTIME_NAME] = colors[colorNames[datumIndex]][2]
               return rtrn;
             }, {}) : false}
           >
@@ -336,7 +337,7 @@ const gcCharts = (all, path) => {
                   <Line
                     key={`${entry.name} seconds`}
                     yAxisId={0}
-                    name={`${entry.name}-seconds`}
+                    name={`${entry.data.qdup.state.RUNTIME_NAME}-seconds`}
                     dataKey={`${entry.name}-seconds`}
                     stroke={colors[colorNames[entryIndex]][3]}
                     fill={colors[colorNames[entryIndex]][3]}
@@ -409,7 +410,7 @@ const pmiChart = (all, path, selectors, unit = "threads") => {
           leftLabel={unit}
           domainLabel="seconds"
           labels={all.length > 1 ? all.reduce((rtrn, datum, datumIndex) => {
-            rtrn[datum.name] = colors[colorNames[datumIndex]][2]
+            rtrn[datum.data.qdup.state.RUNTIME_NAME] = colors[colorNames[datumIndex]][2]
             return rtrn;
           }, {}) : false}
         >
@@ -446,7 +447,7 @@ const pmiChart = (all, path, selectors, unit = "threads") => {
                   <Line
                     key={`${entry.name}-${selectorKey}`}
                     yAxisId={0}
-                    name={`${entry.name}-${selectorKey}`}
+                    name={`${entry.data.qdup.state.RUNTIME_NAME}-${selectorKey}`}
                     dataKey={`${entry.name}-${selectorKey}`}
                     stroke={colors[colorNames[entryIndex]][2]}
                     fill={colors[colorNames[entryIndex]][2]}
@@ -500,7 +501,7 @@ const dstatCharts = (all, path) => {
           leftLabel="% cpu"
           domainLabel="seconds"
           labels={all.length > 1 ? all.reduce((rtrn, datum, datumIndex) => {
-            rtrn[datum.name] = colors[colorNames[datumIndex]][2]
+            rtrn[datum.data.qdup.state.RUNTIME_NAME] = colors[colorNames[datumIndex]][2]
             return rtrn;
           }, {}) : false}
         >
@@ -532,7 +533,7 @@ const dstatCharts = (all, path) => {
                 <Line
                   key={`${entry.name}-usd`}
                   yAxisId={0}
-                  name={`${entry.name}`}
+                  name={`${entry.data.qdup.state.RUNTIME_NAME}`}
                   dataKey={`${entry.name}-usd`}
                   stroke={colors[colorNames[entryIndex]][2]}
                   fill={colors[colorNames[entryIndex]][2]}
@@ -593,7 +594,7 @@ const xanCharts = (all, path, unit = "seconds") => {
             leftLabel={unit}
             domainLabel="seconds"
             labels={all.length > 1 ? all.reduce((rtrn, datum, datumIndex) => {
-              rtrn[datum.name] = colors[colorNames[datumIndex]][2]
+              rtrn[datum.data.qdup.state.RUNTIME_NAME] = colors[colorNames[datumIndex]][2]
               return rtrn;
             }, {}) : false}
           >
@@ -622,12 +623,12 @@ const xanCharts = (all, path, unit = "seconds") => {
                 <YAxis yAxisId={0} orientation="left" domain={[0, 'auto']}>
                   {/* <Label value={unit} position="insideLeft" angle={-90} offset={0} textAnchor='middle' style={{ textAnchor: 'middle' }} /> */}
                 </YAxis>
-                <Legend align="left" />
+                {/* <Legend align="left" /> */}
                 {all.map((entry, entryIndex) => (
                   <Line
                     key={`${entry.name}-${header}`}
                     yAxisId={0}
-                    name={`${entry.name}`}
+                    name={`${entry.data.qdup.state.RUNTIME_NAME}`}
                     dataKey={`${entry.name}-${header}`}
                     stroke={colors[colorNames[entryIndex]][2]}
                     fill={colors[colorNames[entryIndex]][2]}
@@ -700,7 +701,7 @@ function Web() {
       <tr>
         <th>setting</th>
         {data.map((datum, datumIndex) => (
-          <th key={datumIndex}>{datum.name}</th>
+          <th key={datumIndex}>{datum.data.qdup.state.RUNTIME_NAME}</th>
         ))}
       </tr>
     </thead>
@@ -731,7 +732,7 @@ function Web() {
     </thead>
     <tbody>
       {data.map((v, i) => (<tr key={i}>
-        <td data-label="runId">{v.name}</td>
+        <td data-label="runId">{v.data.qdup.state.RUNTIME_NAME}</td>
         <td>{jsonpath.query(v.data, "$.faban.summary.benchResults.benchSummary.passed['text()']")}</td>
         <td data-label="todo save from column header">{jsonpath.query(v.data, "$.faban.summary.benchResults.benchSummary.metric['text()']")}</td>
         <td>{duration(v.data).toFormat("hh:mm:ss")}</td>
@@ -758,7 +759,7 @@ function Web() {
         </thead>
         <tbody>
           {data.map((v, i) => (<tr key={i}>
-            <td data-label="runId">{v.name}</td>
+            <td data-label="runId">{v.data.qdup.state.RUNTIME_NAME}</td>
             <td>{jsonpath.query(driver, `$.passed['text()']`)}</td>
             <td>{jsonpath.query(driver, `$.metric['text()']`)}</td>
             <td>{jsonpath.query(driver, `$.totalOps['text()']`)}</td>
@@ -781,7 +782,7 @@ function Web() {
             <tbody>
               {data.map((v, i) => (
                 <tr key={i}>
-                  <td data-label="runId">{v.name}</td>
+                  <td data-label="runId">{v.data.qdup.state.RUNTIME_NAME}</td>
                   <td>
                     <div>{(jsonpath.query(v.data, `$.faban.summary.benchResults.driverSummary.mix.operation[${operationIndex}].successes['text()']`) || [0])[0]} </div>
                     {i > 0 ? <div className="diff">{percentDiff(v.data, data[0].data, `$.faban.summary.benchResults.driverSummary.mix.operation[${operationIndex}].successes['text()']`)}</div> : null}
@@ -812,7 +813,7 @@ function Web() {
             <tbody>
               {data.map((v, i) => (
                 <tr key={i}>
-                  <td data-label="runId">{v.name}</td>
+                  <td data-label="runId">{v.data.qdup.state.RUNTIME_NAME}</td>
                   <td>
                     <div>{jsonpath.query(v.data, `$.faban.summary.benchResults.driverSummary.responseTimes.operation[${operationIndex}].sd['text()']`)}</div>
                     {/* { i > 0 ? <div className="diff">{percentDiff(v.data, data[0].data, `$.faban.summary.benchResults.driverSummary.responseTimes.operation[${operationIndex}].sd['text()']`)}</div> : null } */}
@@ -856,7 +857,7 @@ function Web() {
             <tbody>
               {data.map((v, i) => (
                 <tr key={i}>
-                  <td data-label="runId">{v.name}</td>
+                  <td data-label="runId">{v.data.qdup.state.RUNTIME_NAME}</td>
                   <td>{jsonpath.query(v.data, `$.faban.summary.benchResults.driverSummary.delayTimes.operation[${operationIndex}].targetedAvg['text()']`)}</td>
                   <td>{jsonpath.query(v.data, `$.faban.summary.benchResults.driverSummary.delayTimes.operation[${operationIndex}].actualAvg['text()']`)}</td>
                   <td>{jsonpath.query(v.data, `$.faban.summary.benchResults.driverSummary.delayTimes.operation[${operationIndex}].min['text()']`)}</td>

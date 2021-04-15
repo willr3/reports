@@ -10,6 +10,7 @@ docker run --name my_report -p 3030:3001 -e DATA_PATH=/tmp/data -v reports:/tmp/
 ```
 ## Build to run and test locally
 ```bash
+npm install
 PUBLIC_URL='/' webpack --config webpack.server.js
 DATA_PATH="/tmp/data" node build/server.prod.js #starts the backend
 npm run start #runs the react hot-reload server

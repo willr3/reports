@@ -80,7 +80,6 @@ const accessors = {
     },
     specjEnterprise: {
         scale: `$.faban.run.SPECjEnterprise['fa:runConfig']['fa:scale']['text()']`,
-        fabanId: `$.qdup.state.FABAN_RUN_ID`,
         start: `$.qdup.timestamps.start`,
         files: `$.files..name`,
         times: `(json) => (
@@ -89,7 +88,7 @@ const accessors = {
             ":" + jsonpath.value(json, "$.faban.run.SPECjEnterprise['fa:runConfig']['fa:runControl']['fa:rampDown']['text()']"))`
         ,
         url: `$.qdup.state.RUNTIME_URL`,
-        runtimeName: `$.qdup.state.RUNTIME_NAME`,
+        runtimeName: `$.qdup.state["mwperf-server03.perf.lab.eng.rdu2.redhat.com"].RUNTIME_NAME`,
         stop: `$.qdup.timestamps.start`,
     },
     createNamespace: {
@@ -286,11 +285,7 @@ export default () => {
                 Cell: (arg) => {
                     const { cell: { value } } = arg
                     return (
-                        <a
-                            href={`http://benchclient1.perf.lab.eng.rdu2.redhat.com:9980/resultframe.jsp?runId=${value}&result=summary.xml`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                        >{value.substring(value.lastIndexOf('.') + 1)}</a>
+                        value.substring(value.lastIndexOf('.') + 1)
                     )
                 }
             },
@@ -313,7 +308,7 @@ export default () => {
                         {toRender.map((entry, index) => (
                             <div key={index}>
                                 <a
-                                    href={`http://benchserver1.perf.lab.eng.rdu2.redhat.com:8888/job/qdup/${original.file}/artifact/run/benchserver4.perf.lab.eng.rdu2.redhat.com/${entry}`}
+                                    href={`http://mwperf-server01.perf.lab.eng.rdu2.redhat.com:8080/job/qdup/${original.file}/artifact/run/benchserver4.perf.lab.eng.rdu2.redhat.com/${entry}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                 >
@@ -332,7 +327,7 @@ export default () => {
                     const { cell: { value } } = arg
                     return (
                         <a
-                            href={`http://benchserver1.perf.lab.eng.rdu2.redhat.com:8888/blue/organizations/jenkins/qdup/detail/qdup/${value}/artifacts`}
+                            href={`http://mwperf-server01.perf.lab.eng.rdu2.redhat.com:8080/blue/organizations/jenkins/EAP%2Feap-standalone-2010/detail/eap-standalone-2010/${value}/artifacts`}
                             target="_blank"
                             rel="noopener noreferrer"
                         >
@@ -343,20 +338,21 @@ export default () => {
             },
             { Header: "runtime", accessor: "data.runtimeName" },
             { Header: "scale", accessor: "data.scale" },
-            {
-                Header: "faban", accessor: "data.fabanId",
-                Cell: (arg) => {
-                    const { cell: { value } } = arg
-                    const name = value ? (value.substring(value.lastIndexOf('.') + 1)) : "--"
-                    return (
-                        <a
-                            href={`http://benchclient1.perf.lab.eng.rdu2.redhat.com:9980/resultframe.jsp?runId=${value}&result=summary.xml`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                        >{name}</a>
-                    )
-                }
-            },
+            // {
+            //     Header: "faban", accessor: "data.fabanId",
+            //     Cell: (arg) => {
+            //         const { cell: { value } } = arg
+            //         const name = value ? (value.substring(value.lastIndexOf('.') + 1)) : "--"
+            //         return name
+            //         // return (
+            //         //     <a
+            //         //         href={`http://benchclient1.perf.lab.eng.rdu2.redhat.com:9980/resultframe.jsp?runId=${value}&result=summary.xml`}
+            //         //         target="_blank"
+            //         //         rel="noopener noreferrer"
+            //         //     >{name}</a>
+            //         // )
+            //     }
+            // },
             {
                 Header: "start",
                 accessor: "data.start",
@@ -375,7 +371,7 @@ export default () => {
                         {toRender.map((entry, index) => (
                             <div key={index}>
                                 <a
-                                    href={`http://benchserver1.perf.lab.eng.rdu2.redhat.com:8888/job/qdup/${original.file}/artifact/run/benchserver4.perf.lab.eng.rdu2.redhat.com/${entry}`}
+                                    href={`http://mwperf-server01.perf.lab.eng.rdu2.redhat.com:8080/job/EAP/job/eap-standalone-2010/${original.file}/artifact/run/mwperf-server03.perf.lab.eng.rdu2.redhat.com/${entry}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                 >

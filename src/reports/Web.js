@@ -26,16 +26,20 @@ import '../App.css';
 
 import { fetchSearch } from '../redux/actions';
 import ChartContainer from '../components/ChartContainer';
-import { chartColors } from '../theme';
+import theme, {
+  chartColors,
+  chartColorNames
+} from '../theme';
+import {
+  fabanDuration,
+  xanDistributionChart,
+  xanTimeChart,
+} from '../domain/faban';
+import {
+  joinGc,
+  gcCharts 
+} from '../domain/gc';
 
-const duration = (data) => {
-  const startText = jsonpath.query(data, "$.faban.summary.benchResults.benchSummary.startTime['text()']")[0] || "";
-  const start = DateTime.fromFormat(startText, "EEE MMM dd HH:mm:ss 'UTC' yyyy", { zone: 'utc' });
-  const endText = jsonpath.query(data, "$.faban.summary.benchResults.benchSummary.endTime['text()']")[0] || ""
-  const end = DateTime.fromFormat(endText, "EEE MMM dd HH:mm:ss 'UTC' yyyy", { zone: 'utc' });
-  const duration = end.diff(start);
-  return duration;
-}
 const useZoom = () => {
   const [left, setLeft] = useState(false)
   const [right, setRight] = useState(false)
@@ -54,315 +58,10 @@ const percentDiff = (a, b, path) => {
   return Number.isNaN(rtrn) ? "" : Number(rtrn).toFixed(3) + "%";
 }
 
-const colors = {
-  blue: ["#8BC1F7", "#519DE9", "#0066CC", "#004B95", "#002F5D"],
-  green: ["#A2D99C", "#88D080", "#6EC664", "#509149", "#3B6C37"],
-  purple: ["#CBC0FF", "#B1A3FF", "#A18FFF", "#8476D1", "#6753AC"],
-  cyan: ["#8BB4B9", "#5C969D", "#2E7981", "#015C65", "#00434B"],
-  gold: ["#F9E0A2", "#F6D173", "#F4C145", "#F0AB00", "#C58C00"],
-  orange: ["#F4B678", "#EF9234", "#EC7A08", "#C46100", "#8F4700"]
-}
-const colorNames = Object.keys(colors)
-const colorList = []
-for (var i = 0; i < colors[colorNames[0]].length; i++) {
-  for (var n = 0; n < colorNames.length; n++) {
-    colorList.push(colors[colorNames[n]][i])
-  }
-}
 const nanoToMs = (v) => Number(v / 1000000.0).toFixed(0)
 const tsToHHmmss = (v) => DateTime.fromMillis(v).toFormat("HH:mm:ss")
 
-const joinGc = (data, path) => {
-  const rtrn = {}
-  data.forEach((datum, datumIndex) => {
-    const name = datum.name;
-    const starting = (jsonpath.query(datum.data, `$.qdup.latches.SERVER_STARTING`) || [0])[0]
-    const minTs = Math.floor(((jsonpath.query(datum.data, `$.qdup.latches.FABAN_RAMP_UP`) || [0])[0] - starting) / 1000)
-    const maxTs = Math.floor((((jsonpath.query(datum.data, `$.qdup.latches.FABAN_RAMP_DOWN`) || [0])[0] + 60 * 1000) - starting) / 1000)
-    const found = jsonpath.query(datum.data, path)
-    let prev = 0;
-    found.forEach((entry, entryIndex) => {
-      const ts = entry['timestamp']
-      if (ts >= minTs && ts <= maxTs) {
-        if (ts - minTs < prev) {
-          console.log("ts < prev", ts, prev, minTs, entry, found[entryIndex - 1])
-        }
-        prev = ts - minTs;
 
-        if (typeof rtrn[ts] === "undefined") {
-          rtrn[ts] = { _domainValue: ts - minTs }
-        }
-        rtrn[ts][`${name}-before`] = entry["before"] / (1024 * 1024)
-        rtrn[ts][`${name}-after`] = entry["after"] / (1024 * 1024)
-        rtrn[ts][`${name}-freed`] = rtrn[ts][`${name}-before`] - rtrn[ts][`${name}-after`]
-        rtrn[ts][`${name}-seconds`] = entry["seconds"]
-        rtrn[ts][`${name}-reason`] = entry["reason"]
-      }
-    })
-  })
-  const sorted = Object.values(rtrn)
-  sorted.sort((a, b) => b._domainValue - a._domainValue);
-  return {
-    data: sorted
-  }
-}
-const gcCharts = (all, path) => {
-  const { data } = joinGc(all, path)
-  const legendPayload = all.map((datum, datumIndex) => ({
-    color: colors[colorNames[datumIndex]][2],
-    fill: colors[colorNames[datumIndex]][2],
-    type: 'rect',
-    value: datum.data.qdup.state.RUNTIME_NAME
-  }));
-  return (
-    <React.Fragment>
-      <div className="pf-c-card" style={{ pageBreakInside: 'avoid' }}>
-        <div className="pf-c-card__body">
-          <ChartContainer
-            title="Heap before GC"
-            leftLabel="Mb"
-            domainLabel="seconds"
-            labels={all.length > 1 ? all.reduce((rtrn, datum, datumIndex) => {
-              rtrn[datum.data.qdup.state.RUNTIME_NAME] = colors[colorNames[datumIndex]][2]
-              return rtrn;
-            }, {}) : false}
-          >
-            <ResponsiveContainer width="100%" height={360}>
-              <ComposedChart
-                data={data}
-                style={{ userSelect: 'none' }}
-              >
-                <CartesianGrid strokeDasharray="3 3" />
-                <Tooltip
-                  formatter={(e) => Number(e).toFixed(4)}
-                />
-                <XAxis
-                  allowDataOverflow={true}
-                  type="number"
-                  scale="time"
-                  dataKey="_domainValue"
-                  domain={['auto', 'auto']}
-                  ticks={[...Array(16).keys()].map(x => x * 60)}
-                //domain={domain}
-                //domain={currentDomain}
-                >
-                </XAxis>
-                <YAxis yAxisId={0} orientation="left" domain={['auto', 'auto']}>
-                  {/* <Label value="Mb" position="insideLeft" angle={-90} offset={0} textAnchor='middle' style={{ textAnchor: 'middle' }} /> */}
-                </YAxis>
-                {/* <Legend align="left" payload={legendPayload} /> */}
-                {all.map((entry, entryIndex) => (
-                  <Line
-                    key={`${entry.name}-before`}
-                    yAxisId={0}
-                    name={`${entry.data.qdup.state.RUNTIME_NAME} before`}
-                    dataKey={`${entry.name}-before`}
-                    stroke={colors[colorNames[entryIndex]][1]}
-                    fill={colors[colorNames[entryIndex]][1]}
-                    connectNulls={true}
-                    dot={false}
-                    isAnimationActive={false}
-                    style={{ strokeWidth: 2 }}
-                  />
-                ))}
-                <ReferenceLine x={300} isFront={true} yAxisId={0} style={{ strokeWidth: 2 }}>
-                  <Label value="steadyState" position="insideTop" />
-                </ReferenceLine>
-                <ReferenceLine x={300 + 600} isFront={true} yAxisId={0} style={{ strokeWidth: 2 }}>
-                  <Label value="rampDown" position="insideTop" />
-                </ReferenceLine>
-              </ComposedChart>
-            </ResponsiveContainer>
-          </ChartContainer>
-
-        </div>
-      </div>
-      <div className="pf-c-card" style={{ pageBreakInside: 'avoid' }}>
-        <div className="pf-c-card__body">
-          <ChartContainer
-            title="Heap after GC"
-            leftLabel="Mb"
-            domainLabel="seconds"
-            labels={all.length > 1 ? all.reduce((rtrn, datum, datumIndex) => {
-              rtrn[datum.data.qdup.state.RUNTIME_NAME] = colors[colorNames[datumIndex]][2]
-              return rtrn;
-            }, {}) : false}
-          >
-            <ResponsiveContainer width="100%" height={360}>
-              <ComposedChart
-                data={data}
-                style={{ userSelect: 'none' }}
-              >
-                <CartesianGrid strokeDasharray="3 3" />
-                <Tooltip
-                  formatter={(e) => Number(e).toFixed(4)}
-                />
-                <XAxis
-                  allowDataOverflow={true}
-                  type="number"
-                  scale="time"
-                  dataKey="_domainValue"
-                  domain={['auto', 'auto']}
-                  ticks={[...Array(16).keys()].map(x => x * 60)}
-                //domain={domain}
-                //domain={currentDomain}
-                >
-                </XAxis>
-                <YAxis yAxisId={0} orientation="left" domain={['auto', 'auto']}>
-                  {/* <Label value="Mb" position="insideLeft" angle={-90} offset={0} textAnchor='middle' style={{ textAnchor: 'middle' }} /> */}
-                </YAxis>
-                {/* <Legend align="left" payload={legendPayload} /> */}
-                {all.map((entry, entryIndex) => (
-                  <Line
-                    key={`${entry.name}-after`}
-                    yAxisId={0}
-                    name={`${entry.data.qdup.state.RUNTIME_NAME} after`}
-                    dataKey={`${entry.name}-after`}
-                    stroke={colors[colorNames[entryIndex]][2]}
-                    fill={colors[colorNames[entryIndex]][2]}
-                    connectNulls={true}
-                    dot={false}
-                    isAnimationActive={false}
-                    style={{ strokeWidth: 1 }}
-                  />
-                ))}
-                <ReferenceLine x={300} isFront={true} yAxisId={0} style={{ strokeWidth: 2 }}>
-                  <Label value="steadyState" position="insideTop" />
-                </ReferenceLine>
-                <ReferenceLine x={300 + 600} isFront={true} yAxisId={0} style={{ strokeWidth: 2 }}>
-                  <Label value="rampDown" position="insideTop" />
-                </ReferenceLine>
-              </ComposedChart>
-            </ResponsiveContainer>
-          </ChartContainer>
-        </div>
-      </div>
-      <div className="pf-c-card" style={{ pageBreakInside: 'avoid' }}>
-        <div className="pf-c-card__body">
-          <ChartContainer
-            title="Heap freed in GC"
-            leftLabel="Mb"
-            domainLabel="seconds"
-            labels={all.length > 1 ? all.reduce((rtrn, datum, datumIndex) => {
-              rtrn[datum.data.qdup.state.RUNTIME_NAME] = colors[colorNames[datumIndex]][2]
-              return rtrn;
-            }, {}) : false}
-          >
-            <ResponsiveContainer width="100%" height={360}>
-              <ComposedChart
-                data={data}
-                style={{ userSelect: 'none' }}
-              >
-                <CartesianGrid strokeDasharray="3 3" />
-                <Tooltip
-                  formatter={(e) => Number(e).toFixed(4)}
-                />
-                <XAxis
-                  allowDataOverflow={true}
-                  type="number"
-                  scale="time"
-                  dataKey="_domainValue"
-                  domain={['auto', 'auto']}
-                  ticks={[...Array(16).keys()].map(x => x * 60)}
-                //domain={domain}
-                //domain={currentDomain}
-                >
-                </XAxis>
-                <YAxis yAxisId={0} orientation="left" domain={['auto', 'auto']}>
-                  {/* <Label value="Mb" position="insideLeft" angle={-90} offset={0} textAnchor='middle' style={{ textAnchor: 'middle' }} /> */}
-                </YAxis>
-                {/* <Legend align="left" payload={legendPayload} /> */}
-                {all.map((entry, entryIndex) => (
-                  <Line
-                    key={`${entry.name}-freed`}
-                    yAxisId={0}
-                    name={`${entry.data.qdup.state.RUNTIME_NAME} freed`}
-                    dataKey={`${entry.name}-freed`}
-                    stroke={colors[colorNames[entryIndex]][2]}
-                    fill={colors[colorNames[entryIndex]][2]}
-                    connectNulls={true}
-                    dot={false}
-                    isAnimationActive={false}
-                    style={{ strokeWidth: 1 }}
-                  />
-                ))}
-                <ReferenceLine x={300} isFront={true} yAxisId={0} style={{ strokeWidth: 2 }}>
-                  <Label value="steadyState" position="insideTop" />
-                </ReferenceLine>
-                <ReferenceLine x={300 + 600} isFront={true} yAxisId={0} style={{ strokeWidth: 2 }}>
-                  <Label value="rampDown" position="insideTop" />
-                </ReferenceLine>
-              </ComposedChart>
-            </ResponsiveContainer>
-          </ChartContainer>
-
-        </div>
-      </div>
-      <div className="pf-c-card" style={{ pageBreakInside: 'avoid' }}>
-        <div className="pf-c-card__body">
-          <ChartContainer
-            title="GC duration"
-            leftLabel="Mb"
-            domainLabel="seconds"
-            labels={all.length > 1 ? all.reduce((rtrn, datum, datumIndex) => {
-              rtrn[datum.data.qdup.state.RUNTIME_NAME] = colors[colorNames[datumIndex]][2]
-              return rtrn;
-            }, {}) : false}
-          >
-            <ResponsiveContainer width="100%" height={360}>
-              <ComposedChart
-                data={data}
-                style={{ userSelect: 'none' }}
-              >
-                <CartesianGrid strokeDasharray="3 3" />
-                <Tooltip
-                  formatter={(e) => Number(e).toFixed(4)}
-                />
-                <XAxis
-                  allowDataOverflow={true}
-                  type="number"
-                  scale="time"
-                  dataKey="_domainValue"
-                  domain={['auto', 'auto']}
-                  ticks={[...Array(16).keys()].map(x => x * 60)}
-                //domain={domain}
-                //domain={currentDomain}
-                >
-                </XAxis>
-                <YAxis yAxisId={0} orientation="left" domain={['auto', 'auto']}>
-                  {/* <Label value="seconds" position="insideLeft" angle={-90} offset={0} textAnchor='middle' style={{ textAnchor: 'middle' }} /> */}
-                </YAxis>
-                {/* <Legend align="left" payload={legendPayload} /> */}
-                {all.map((entry, entryIndex) => (
-                  <Line
-                    key={`${entry.name} seconds`}
-                    yAxisId={0}
-                    name={`${entry.data.qdup.state.RUNTIME_NAME}-seconds`}
-                    dataKey={`${entry.name}-seconds`}
-                    stroke={colors[colorNames[entryIndex]][3]}
-                    fill={colors[colorNames[entryIndex]][3]}
-                    connectNulls={true}
-                    dot={false}
-                    isAnimationActive={false}
-                    style={{ strokeWidth: 1 }}
-                  />
-                ))}
-                <ReferenceLine x={300} isFront={true} yAxisId={0} style={{ strokeWidth: 2 }}>
-                  <Label value="steadyState" position="insideTop" />
-                </ReferenceLine>
-                <ReferenceLine x={300 + 600} isFront={true} yAxisId={0} style={{ strokeWidth: 2 }}>
-                  <Label value="rampDown" position="insideTop" />
-                </ReferenceLine>
-              </ComposedChart>
-            </ResponsiveContainer>
-
-
-          </ChartContainer>
-        </div>
-      </div>
-    </React.Fragment>
-  )
-}
 const joinPmi = (data, path, selectors) => {
   const rtrn = {}
   data.forEach((datum, datumIndex) => {
@@ -410,7 +109,7 @@ const pmiChart = (all, path, selectors, unit = "threads") => {
           leftLabel={unit}
           domainLabel="seconds"
           labels={all.length > 1 ? all.reduce((rtrn, datum, datumIndex) => {
-            rtrn[datum.data.qdup.state.RUNTIME_NAME] = colors[colorNames[datumIndex]][2]
+            rtrn[datum.data.qdup.state.RUNTIME_NAME] = theme.colors.chart[chartColorNames[datumIndex]][2]
             return rtrn;
           }, {}) : false}
         >
@@ -449,8 +148,8 @@ const pmiChart = (all, path, selectors, unit = "threads") => {
                     yAxisId={0}
                     name={`${entry.data.qdup.state.RUNTIME_NAME}-${selectorKey}`}
                     dataKey={`${entry.name}-${selectorKey}`}
-                    stroke={colors[colorNames[entryIndex]][2]}
-                    fill={colors[colorNames[entryIndex]][2]}
+                    stroke={theme.colors.chart[chartColorNames[entryIndex]][2]}
+                    fill={theme.colors.chart[chartColorNames[entryIndex]][2]}
                     connectNulls={true}
                     dot={false}
                     isAnimationActive={false}
@@ -501,7 +200,7 @@ const dstatCharts = (all, path) => {
           leftLabel="% cpu"
           domainLabel="seconds"
           labels={all.length > 1 ? all.reduce((rtrn, datum, datumIndex) => {
-            rtrn[datum.data.qdup.state.RUNTIME_NAME] = colors[colorNames[datumIndex]][2]
+            rtrn[datum.data.qdup.state.RUNTIME_NAME] = theme.colors.chart[chartColorNames[datumIndex]][2]
             return rtrn;
           }, {}) : false}
         >
@@ -535,8 +234,8 @@ const dstatCharts = (all, path) => {
                   yAxisId={0}
                   name={`${entry.data.qdup.state.RUNTIME_NAME}`}
                   dataKey={`${entry.name}-usd`}
-                  stroke={colors[colorNames[entryIndex]][2]}
-                  fill={colors[colorNames[entryIndex]][2]}
+                  stroke={theme.colors.chart[chartColorNames[entryIndex]][2]}
+                  fill={theme.colors.chart[chartColorNames[entryIndex]][2]}
                   connectNulls={true}
                   dot={false}
                   isAnimationActive={false}
@@ -594,7 +293,7 @@ const xanCharts = (all, path, unit = "seconds") => {
             leftLabel={unit}
             domainLabel="seconds"
             labels={all.length > 1 ? all.reduce((rtrn, datum, datumIndex) => {
-              rtrn[datum.data.qdup.state.RUNTIME_NAME] = colors[colorNames[datumIndex]][2]
+              rtrn[datum.data.qdup.state.RUNTIME_NAME] = theme.colors.chart[chartColorNames[datumIndex]][2]
               return rtrn;
             }, {}) : false}
           >
@@ -630,8 +329,8 @@ const xanCharts = (all, path, unit = "seconds") => {
                     yAxisId={0}
                     name={`${entry.data.qdup.state.RUNTIME_NAME}`}
                     dataKey={`${entry.name}-${header}`}
-                    stroke={colors[colorNames[entryIndex]][2]}
-                    fill={colors[colorNames[entryIndex]][2]}
+                    stroke={theme.colors.chart[chartColorNames[entryIndex]][2]}
+                    fill={theme.colors.chart[chartColorNames[entryIndex]][2]}
                     connectNulls={true}
                     dot={false}
                     isAnimationActive={false}
@@ -735,7 +434,7 @@ function Web() {
         <td data-label="runId">{v.data.qdup.state.RUNTIME_NAME}</td>
         <td>{jsonpath.query(v.data, "$.faban.summary.benchResults.benchSummary.passed['text()']")}</td>
         <td data-label="todo save from column header">{jsonpath.query(v.data, "$.faban.summary.benchResults.benchSummary.metric['text()']")}</td>
-        <td>{duration(v.data).toFormat("hh:mm:ss")}</td>
+        <td>{fabanDuration(v.data).toFormat("hh:mm:ss")}</td>
         <td>{Number(dstats.data.map(e => e[`${v.name}-usd`]).reduce((a, b) => a + (b || 0), 0) / dstats.data.length).toFixed(3)}</td>
         <td>
           {Object.entries(reasons[v.name]).map(([key, value]) => (<div key={key}>{key} {value}</div>))}

@@ -50,7 +50,13 @@ const theme = {
         }
     }
 }
-
+export const chartColorNames = Object.keys(theme.colors.chart)
+export const chartColorList = []
+for (var i = 0; i < theme.colors.chart[chartColorNames[0]].length; i++) {
+  for (var n = 0; n < chartColorNames.length; n++) {
+    chartColorList.push(theme.colors.chart[chartColorNames[n]][i])
+  }
+}
 export const chartColors = Object.keys(theme.colors.chart).reduce((rtrn,name,nameIndex)=>{
     const colors = theme.colors.chart[name];
     for(let i=0; i<colors.length; i++){

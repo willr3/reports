@@ -14,12 +14,12 @@ import {
     ReferenceLine,
     ResponsiveContainer,
 } from 'recharts';
-import { AutoSizer } from 'react-virtualized';
+//import { AutoSizer } from 'react-virtualized';
 import { getCdf, getBuckets, getStats, linearEstimate, getKolmogorovSmirnov } from './stats';
 import reducer, { apply } from './reducer';
 import theme from '../theme';
 
-import ChartContainer from '../components/ChartContainer';
+//import ChartContainer from '../components/ChartContainer';
 
 export const getColor = (index, subIndex) => {
     const chartName = Object.keys(theme.colors.chart)[index % Object.keys(theme.colors.chart).length]

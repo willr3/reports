@@ -1,5 +1,20 @@
 import * as hdr from "hdr-histogram-js"
 import reducer, {apply} from './reducer';
+import jsonpath from 'jsonpath';
+
+/**
+ * calculates the percent difference of jsopath value in two datasets
+ * @param {*} a first dataset
+ * @param {*} b second dataset
+ * @param {*} path jsonpath to value in dataset a and b
+ */
+export const percentDiff = (a, b, path) => {
+    const v1 = (jsonpath.query(a, path) || [NaN])[0]
+    const v2 = (jsonpath.query(b, path) || [NaN])[0]
+    const rtrn = (v1 - v2) / ((v1 + v2) / 2) * 100
+    return Number.isNaN(rtrn) ? "" : Number(rtrn).toFixed(3) + "%";
+  }
+  
 
 /**
  * assumes all is sorted by getDomain

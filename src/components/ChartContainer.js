@@ -42,7 +42,7 @@ export default ({
 
                 <div className="panel-header" style={fixedStyle}>
                     <div style={{  }}>
-                        {title}
+                        <h3>{title}</h3>
                         {/* <CaretDownIcon/> */}
                     </div>
                 </div>

@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import jsonpath from 'jsonpath';
-import { DateTime } from 'luxon'
+import { DateTime, Duration } from 'luxon'
 import * as qs from 'query-string';
 import { useHistory, useParams, useLocation } from "react-router"
 import {
     Area,
     Bar,
+    Brush,
     Label,
     Legend,
     ComposedChart,
@@ -31,6 +32,18 @@ import { fetchSearch } from '../redux/actions';
 import ChartContainer from '../components/ChartContainer';
 import { chartColors } from '../theme';
 import CaptureContainer from '../components/CaptureContainer';
+
+const useZoom = () => {
+    const [left, setLeft] = useState(false)
+    const [right, setRight] = useState(false)
+    return {
+      left,
+      right,
+      setLeft,
+      setRight,
+    };
+  }
+  
 
 const colors = {
     blue: ["#8BC1F7", "#519DE9", "#0066CC", "#004B95", "#002F5D"],
@@ -79,22 +92,172 @@ const createTable = (mergedData, names = [], header = "", config = { precision: 
         </table>
     )
 }
-const namespaceTimes = (datum, dataIndex, datasets) => datum.data.qdup.run.profiles["scalelab-setup@f03-h01-000-r620"].timers
+const getProfile = (datum) => datum.data.qdup.run.profiles["scalelab-setup@f03-h01-000-r620"] ? datum.data.qdup.run.profiles["scalelab-setup@f03-h01-000-r620"] : datum.data.qdup.run.profiles["serverless-setup@mwperf-server01."]
+const namespaceTimes = (datum, dataIndex, datasets) => getProfile(datum).timers
     .filter(timer =>
         timer.name.startsWith("Sh-await-callback") &&
         timer.name.includes("kind: Namespace")
     )
     .map((timer, index) => ({ ...timer, index }))
 
-const serviceTimes = (datum, dataIndex, datasets) => datum.data.qdup.run.profiles["scalelab-setup@f03-h01-000-r620"].timers
+const serviceTimes = (datum, dataIndex, datasets) => getProfile(datum).timers
     .filter(timer =>
         timer.name.startsWith("Sh-await-callback") &&
-        timer.name.includes("serving.knative.dev/v1alpha1")
+        timer.name.includes("serving.knative.dev/v1")
     )
     .map((timer, index) => ({ ...timer, index }))
 
+const getPrometheusCategorySum = (getCategory,stat="cpu" /*mem*/) => (datum, datumIndex, datasets) =>{
+    const start = Math.floor(jsonpath.value(datum, "$.data.qdup.run.timestamps.start") / 1000)
+    const stop = Math.floor(jsonpath.value(datum, "$.data.qdup.run.timestamps.stop") / 1000) 
+    //const stop = Math.floor(jsonpath.value(datum, "$.data.qdup.run.timestamps.start") / 1000) + 4.75*60*60
+    const categories = {}
+    const values = Object.values(
+        jsonpath.value(datum, `$.data.oc.prometheus.${stat}`)
+        .reduce((rtrn,entry,index, all)=>{
+            const category = getCategory(entry.metric)
+            if(!categories[category]){
+                categories[category] = 0
+            }
+            entry.values.filter((v,i,a)=>{
+                const ts = v[0]
+                return ts > start && ts < stop
+            }).forEach((v,i,a)=>{
+                if (!rtrn["" + v[0]]) {
+                    rtrn["" + v[0]] = {__domainValue: v[0] - start }
+                }
+                if( !rtrn["" + v[0]][category] ){
+                    rtrn["" + v[0]][category] = 0
+                }
+                const val = parseFloat(v[1])
+                rtrn["" + v[0]][category] += val
+                categories[category] += val
+            })
+            return rtrn
+        }, {})
+    )
+    return {categories,values}
+
+}
+const getPrometheusSum = (filter, target = "pod" /*namespace*/, stat = "cpu" /*mem*/) => (datum, datumIndex, datasets) => {
+    const start = Math.floor(jsonpath.value(datum, "$.data.qdup.run.timestamps.start") / 1000)
+    const stop = Math.floor(jsonpath.value(datum, "$.data.qdup.run.timestamps.stop") / 1000)
+    const found = typeof filter === "function" ? 
+        [...new Set(jsonpath.value(datum, `$.data.oc.prometheus.${stat}`).filter(v=>filter(v.metric)).map(v=>v.metric[target])) ] 
+        : [...new Set(jsonpath.query(datum, `$.data.oc.prometheus.${stat}[?(@.metric.${target}.includes("${filter}") )].metric.${target}`))]
+    return Object.values(
+            found
+            .reduce((rtrn, entry, index, all) => {
+                const values = jsonpath.query(datum, `$.data.oc.prometheus.${stat}[?(@.metric.${target} == "${entry}" )].values`)
+                values.forEach(value=>{
+                    value.forEach((v, i, a) => {
+                        if (!rtrn["" + v[0]]) {
+                            rtrn["" + v[0]] = { __domainValue: v[0] - start, sum: 0 }
+                        }
+                        rtrn["" + v[0]].sum += parseFloat(v[1])
+                    })
+                })
+                return rtrn
+            }, {})
+    )
+}
+
+const prometheusChart = (data, search, target = "pod", stat = "cpu", cfg = {}) => {
+    const {
+        title=`${target} ${search} Σ(${stat})`, 
+        leftLabel=`${stat}`, 
+        domainLabel="seconds", 
+        formatter=(v)=>v,
+        tickFormatter=(v)=>v, 
+        labelFormatter=(v) => Duration(v).toFormat("hh:mm")
+    } = cfg
+    const getName = (datum, datumIndex, datasets) => datum.name
+    const labels = data.reduce((rtrn, datum, datumIndex) => {
+        rtrn[getName(datum, datumIndex, data)] = chartColors[datumIndex % chartColors.length]
+        return rtrn;
+    }, {})
+    const chartData = reducer(
+        data,
+        {
+            "oc": (v) => { return v.sum; }
+        },
+        {
+            getName,
+            getSeries: getPrometheusSum(search, target, stat), //ovnkube-master
+            getDomain: (v) => v.__domainValue
+        }
+    )
+    return (
+        <div style={{ pageBreakInside: 'avoid' }}>
+            <ChartContainer
+                title={title}
+                leftLabel={leftLabel}
+                domainLabel={domainLabel}
+                labels={labels}
+            >
+                <ResponsiveContainer width="100%" height={360}>
+                    <ComposedChart
+                        data={chartData}
+                        style={{ userSelect: 'none' }}
+                        onMouseDown={(e)=>console.log("down",chartData.length,e)}
+                        onMouseUp={(e)=>{console.log("up",e)}}
+                    >
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <Tooltip
+                            formatter={formatter}
+                            labelFormatter={v=>Duration.fromMillis(v*1000).toFormat("hh:mm")}
+                        />
+                        <XAxis
+                            allowDataOverflow={true}
+                            type="number"
+                            scale="linear"
+                            dataKey="__domainValue"
+                            domain={[0, 'auto']}
+                            //domain={['dataMin', 'auto']}
+                            //domain={[11700,17160]}
+                            tickFormatter={v=>Duration.fromMillis(v*1000).toFormat("hh:mm")}
+                        >
+                            {/* <Label
+                            value="services"
+                            position="insideBottom"
+                            angle={0}
+                            offset={0}
+                            textAnchor='middle'
+                            style={{ textAnchor: 'middle' }}
+                        /> */}
+                        </XAxis>
+                        {/* <Brush dataKey="__domainValue" height={30} stroke="#8884d8" /> */}
+                        {/* <Legend align="left" /> */}
+                        <YAxis
+                            allowDataOverflow={true}
+                            domain={[0, 'auto']}
+                            tickFormatter={tickFormatter}
+                        >
+                            {/* <Label value="seconds" position="insideLeft" angle={-90} offset={0} textAnchor='middle' style={{ textAnchor: 'middle' }} /> */}
+                        </YAxis>
+                        {data.map((datum, datumIndex, datasets) => (
+                            <Line
+                                key={`${datum.name}-oc`}
+                                yAxisId={0}
+                                name={`${datum.name}`}
+                                dataKey={`${datum.name}-oc`}
+                                stroke={colors[colorNames[datumIndex]][1]}
+                                fill={colors[colorNames[datumIndex]][1]}
+                                connectNulls={true}
+                                dot={false}
+                                isAnimationActive={false}
+                                style={{ strokeWidth: 2 }}
+                            />
+                        ))}
+                        {/* <ReferenceArea yAxisId={0} x1={11700} x2={17160} strokeOpacity={0.3} /> */}
+                    </ComposedChart>
+                </ResponsiveContainer>
+            </ChartContainer>
+        </div>
+    )
+}
+
 const reportSeries = (name, getSeries, valueKey, getName = (v) => v.name, data) => {
-    console.log("name", name)
     const getValues = (v, i, a) => apply(getSeries, v, i, a).map(v => v[valueKey] / 1000)
     const stats = reducer(
         data,
@@ -115,7 +278,6 @@ const reportSeries = (name, getSeries, valueKey, getName = (v) => v.name, data) 
             .filter(v => v[0] !== "__domainValue")
             .map(v => v[1])
     )]
-    console.log("domain", statDomain)
     return (
         <React.Fragment>
             <div style={{ pageBreakInside: 'avoid' }}>
@@ -141,7 +303,7 @@ const reportSeries = (name, getSeries, valueKey, getName = (v) => v.name, data) 
             </div>
             <div style={{ pageBreakInside: 'avoid' }}>
                 <ChartContainer
-                    title={<h3>{`${name} samples`}</h3>}
+                    title={<>{`${name}`}</>}
                     leftLabel="seconds"
                     domainLabel="services"
                     labels={data.reduce((rtrn, datum, datumIndex) => {
@@ -212,7 +374,7 @@ const reportSeries = (name, getSeries, valueKey, getName = (v) => v.name, data) 
             </div>
             <div style={{ pageBreakInside: 'avoid' }}>
                 <ChartContainer
-                    title={<h3>{`${name} histogram`}</h3>}
+                    title={<>{`${name} histogram`}</>}
                     leftLabel="count"
                     domainLabel="seconds"
                     labels={data.reduce((rtrn, datum, datumIndex) => {
@@ -234,7 +396,7 @@ const reportSeries = (name, getSeries, valueKey, getName = (v) => v.name, data) 
             </div>
             <div style={{ pageBreakInside: 'avoid' }}>
                 <ChartContainer
-                    title={<h3>{`${name} cumulative distribution`}</h3>}
+                    title={<>{`${name} cumulative distribution`}</>}
                     leftLabel="count"
                     domainLabel="seconds"
                     labels={data.reduce((rtrn, datum, datumIndex) => {
@@ -308,6 +470,18 @@ function Namespace() {
     //         .map(v => v[1])
     // )]
 
+
+    if(data.length>0){
+        data.forEach((datum,datumIndex)=>{
+            const {categories,values} = getPrometheusCategorySum((metric)=>metric.namespace.startsWith("perf-test") ? "perf-test" : metric.namespace)(datum,datumIndex,data)
+            console.log("categories",categories)
+            const sorted = Object.entries(categories).sort((a,b)=>b[1] - a[1])
+            console.log("sorted["+datumIndex+"]",sorted.slice(0,10))
+    
+        })
+    }
+
+
     return (
         <>
             <Helmet><title>Namespace {data.map(getDataName).join(" ")}</title></Helmet>
@@ -350,17 +524,56 @@ function Namespace() {
                                         </tbody>
                                     </table>
                                 </div>
+                                {prometheusChart(data,"","pod","cpu",{
+                                    title: 'all pods Σ(cpu)'
+                                })}
+                                {prometheusChart(data,"","pod","mem",{
+                                    title: 'all pods Σ(mem)', 
+                                    tickFormatter: (v)=>Number(v/(1024*1024*1024)).toFixed(1)+"G",
+                                    formatter: (v)=>Number(v/(1024*1024*1024)).toFixed(2)+"G",
+                                })}
+                                {prometheusChart(data,(v)=>v.namespace == "knative-serving-ingress","namespace","cpu",{
+                                    title: 'knative-serving-ingress namespace Σ(cpu)'
+                                })}
+                                {prometheusChart(data,(v)=>v.namespace == "knative-serving-ingress","namespace","mem",{
+                                    title: 'knative-serving-ingress namespace Σ(mem)', 
+                                    tickFormatter: (v)=>Number(v/(1024*1024*1024)).toFixed(1)+"G"
+                                })}
+                                {prometheusChart(data,(v)=>v.namespace == "knative-serving","namespace","cpu",{
+                                    title: 'knative-serving namespace Σ(cpu)'
+                                })}
+                                {prometheusChart(data,(v)=>v.namespace == "knative-serving","namespace","mem",{
+                                    title: 'knative-serving namespace Σ(mem)', 
+                                    tickFormatter: (v)=>Number(v/(1024*1024*1024)).toFixed(1)+"G",
+                                    formatter: (v)=>Number(v/(1024*1024*1024)).toFixed(2)+"G",
+                                })}
+                                {prometheusChart(data,"openshift-ovn-kubernetes","namespace","cpu",{})}
+                                {prometheusChart(data,"openshift-ovn-kubernetes","namespace","mem",{ 
+                                    tickFormatter: (v)=>Number(v/(1024*1024*1024)).toFixed(2)+"G",
+                                    formatter: (v)=>Number(v/(1024*1024*1024)).toFixed(2)+"G",
+                                })}
+                                {prometheusChart(data,"ovnkube-master","pod","cpu",{})}
+                                {prometheusChart(data,"ovnkube-master","pod","mem",{ 
+                                    tickFormatter: (v)=>Number(v/(1024*1024*1024)).toFixed(1)+"G",
+                                    formatter: (v)=>Number(v/(1024*1024*1024)).toFixed(2)+"G",
+                                })}
+                                {prometheusChart(data,"ovnkube-node","pod","cpu",{})}
+                                {prometheusChart(data,"ovnkube-node","pod","mem",{ 
+                                    tickFormatter: (v)=>Number(v/(1024*1024*1024)).toFixed(1)+"G",
+                                    formatter: (v)=>Number(v/(1024*1024*1024)).toFixed(2)+"G",
+                                })}
+
                                 {reportSeries("Namespace", namespaceTimes, "millis", getDataName, data)}
                                 {reportSeries("Service", serviceTimes, "millis", getDataName, data)}
                                 {reportSeries("Ready ksvc",
-                                    (datum, datumIndex, datasets) => datum.data.qdup.run.profiles["scalelab-setup@f03-h01-000-r620"].timers
-                                        .filter((timer,timerIndex,allTimers) =>
+                                    (datum, datumIndex, datasets) => getProfile(datum).timers
+                                        .filter((timer, timerIndex, allTimers) =>
                                             timer.name.startsWith("Sh-await-callback") &&
                                             timer.name.includes("wait --for=condition=Ready ksvc")
-                                            
+
                                         )
-                                        .filter((timer,timerIndex,allTimers)=>
-                                            timerIndex < allTimers.length-3
+                                        .filter((timer, timerIndex, allTimers) =>
+                                            timerIndex < allTimers.length - 3
                                         )
                                         .map((timer, index) => ({ ...timer, index })),
                                     "millis", getDataName, data)

@@ -145,7 +145,7 @@ export default ({
         loading={true}
     /> : <CopyIcon />
     return (
-        <div className="capture-container" ref={defaultRef} style={{ pageBreakInside: 'avoid' }}>
+        <div className="capture-container" ref={defaultRef} style={{ breakInside: 'avoid' }}>
             {children}
             <span className="capture-controls" data-html2canvas-ignore={true} >
                 <Tooltip content="download">

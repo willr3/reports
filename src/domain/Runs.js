@@ -101,30 +101,63 @@ const accessors = {
             return rtrn;
         }`,
         times: "$.qdup.run.state.time.length",
-        namespaces: `$.qdup.run.state.NAMESPACE_COUNT`,
-        services: `$.qdup.run.state.SERVICE_COUNT`,
+        serverless: `(json)=>{
+            const found = jsonpath.value(json,"$.oc.operators.items[?(@.spec.name == 'serverless-operator')].status.installedCSV")
+            return found || "--"
+        }`,
+        namespaces: `(json)=>{
+            const cap = jsonpath.value(json,"$.qdup.run.state.NAMESPACE_COUNT")
+            const low = jsonpath.value(json,"$.qdup.run.state.namespace_count")
+            return cap ? cap : low
+        }`,
+        services: `(json)=>{
+            const cap = jsonpath.value(json,"$.qdup.run.state.SERVICE_COUNT")
+            const low = jsonpath.value(json,"$.qdup.run.state.service_count")
+            return cap ? cap : low
+        }`,
         lastServiceStop: `(json) => {
-            const ary = json.qdup.run.profiles["scalelab-setup@f03-h01-000-r620"].timers
+            const profile = json.qdup.run.profiles["scalelab-setup@f03-h01-000-r620"] ? 
+                json.qdup.run.profiles["scalelab-setup@f03-h01-000-r620"] : 
+                json.qdup.run.profiles["serverless-setup@mwperf-server01."]
+            if(profile){
+                const services = profile.timers
                 .filter(timer=>
                     timer.name.startsWith("Sh-await-callback") && 
-                    timer.name.includes("serving.knative.dev/v1alpha1")
+                    timer.name.includes("serving.knative.dev/v1")
                 );
-            return ary[ary.length-1].stop
+                return services[services.length-1].stop
+            }else{
+                return "--";
+            }
         }`,
-        createNamespace: `(json) => (
-            json.qdup.run.profiles["scalelab-setup@f03-h01-000-r620"].timers
+        createNamespace: `(json) => {
+            const profile = json.qdup.run.profiles["scalelab-setup@f03-h01-000-r620"] ? 
+                json.qdup.run.profiles["scalelab-setup@f03-h01-000-r620"] : 
+                json.qdup.run.profiles["serverless-setup@mwperf-server01."]
+            if(profile){
+                return profile.timers
                 .filter(timer=>
                     timer.name.startsWith("Sh-await-callback") && 
                     timer.name.includes("kind: Namespace")
                 ).length
-        )`,
-        createService: `(json) => (
-            json.qdup.run.profiles["scalelab-setup@f03-h01-000-r620"].timers
+            }else{
+                return "--"
+            }
+        }`,
+        createService: `(json) => {
+            const profile = json.qdup.run.profiles["scalelab-setup@f03-h01-000-r620"] ? 
+                json.qdup.run.profiles["scalelab-setup@f03-h01-000-r620"] : 
+                json.qdup.run.profiles["serverless-setup@mwperf-server01."]
+            if(profile){
+                return profile.timers
                 .filter(timer=>
-                    timer.name.startsWith("Sh-await-callback") && 
-                    timer.name.includes("serving.knative.dev/v1alpha1")
+                    timer.name.startsWith("Sh-await-callback") &&
+                    timer.name.includes("serving.knative.dev/v1")
                 ).length
-        )`,
+            }else{
+                return "--"
+            }
+        }`,
         files: `$.files..name`,
     }
 };
@@ -160,14 +193,12 @@ export default () => {
             { Header: 'id', accessor: "data.id" },
             {
                 Header: 'start', accessor: ({ data: { start, stop } }, rowIndex) => {
-                    console.log("start", start, data)
                     return DateTime.fromMillis(start).toFormat("yyyy-MM-dd HH:mm:ss")
                 }
             },
             // {Header: 'stop', accessor: ({data: {start, stop}},rowIndex) => DateTime.fromMillis(stop).toFormat("HH:mm:ss") },
             {
                 Header: 'duration', accessor: ({ data: { start, stop } }, rowIndex) => {
-                    console.log("duration", { start, stop }, start instanceof Number, stop instanceof Number)
                     return DateTime.fromMillis(stop).diff(DateTime.fromMillis(start)).toFormat("hh:mm:ss")
                 }
             },
@@ -238,7 +269,6 @@ export default () => {
             // },
             {
                 Header: 'start', accessor: ({ data: { start, stop } }, rowIndex) => {
-                    console.log("start", start, data)
                     return DateTime.fromMillis(start).toFormat("yyyy-MM-dd HH:mm:ss")
                 }
             },
@@ -248,6 +278,7 @@ export default () => {
                 }
             },
             { Header: "duration", accessor: "data.duration" },
+            { Header: "serverless", accessor: "data.serverless"},
             { Header: "curls", accessor: "data.times" },
             { Header: "target namespaces", accessor: "data.namespaces" },
             { Header: "service/namespace", accessor: "data.services" },
@@ -255,7 +286,6 @@ export default () => {
             { Header: "created services", accessor: "data.createService" },
             {
                 Header: 'lastService', accessor: ({ data: { start, stop, lastServiceStop } }, rowIndex) => {
-                    console.log("lastServiceStop", lastServiceStop, data)
                     return DateTime.fromMillis(lastServiceStop).toFormat("yyyy-MM-dd HH:mm:ss")
                 }
             },
@@ -495,7 +525,6 @@ export default () => {
         ),
         []
     )
-    console.log(groupId,columns,columns[groupId])
     return (
         <Page header={Header} sidebar={Sidebar}>
             <PageSection isFilled={true}>

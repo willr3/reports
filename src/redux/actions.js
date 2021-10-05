@@ -23,12 +23,16 @@ export const fetchSearch = (groupId="",search="",callBack=()=>{})=>()=>{
     const names = (q.q && Array.isArray(q.q) ? q.q : [q.q]).filter(v => v) //removes undefined
     const getIt = async () => {
         const ary = await Promise.all(
-            names.map(name => axios.get(`/api/data/${groupId}/${name}.json`).then(response =>(
+            names.map(name => {
+                const file = name.includes("=") ? name.substring(0,name.indexOf("=")) : name
+                const alias = name.includes("=") ? name.substring(name.indexOf("=")+1,name.length) : name
+                return axios.get(`/api/data/${groupId}/${file}.json`).then(response =>(
                 {
                     ...response,
-                    name
-                }
-            )))
+                    name : alias
+                }))
+            }
+            )
         ).then( v => v.map( d=> ({
             url: d.config.url,
             data: d.data,

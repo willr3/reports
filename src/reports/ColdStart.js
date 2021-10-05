@@ -127,7 +127,7 @@ function ColdStart() {
             </Helmet>
             <div className="pf-c-content">
                 <div className="pf-c-card">
-                    <div className="pf-c-card__body" style={{ paddingBottom: '100px', borderBottom: 'none' , display:'flex', flexDirection:'column', '&&after':{ content: ' ', padding:'1em'}}}>
+                    <div className="pf-c-card__body" style={{ paddingBottom: '100px', borderBottom: 'none', display: 'flex', flexDirection: 'column', '&&after': { content: ' ', padding: '1em' } }}>
                         <h1>Serverless Scale from Zero Testing</h1>
                         {data.length > 0 ? (
                             <React.Fragment>
@@ -164,42 +164,54 @@ function ColdStart() {
                                         </tbody>
                                     </table>
                                 </div>
-                                <ChartContainer title={<h3>curl statistics</h3>}>
-                                    <div style={{ pageBreakInside: 'avoid' }}>
+                                <div style={{ pageBreakInside: 'avoid', breakAfter: 'page'  }}>
+                                    <ChartContainer title={<>curl statistics</>}>
                                         {createTable(
                                             stats,
                                             data.map(getDataName),
                                             "stat"
                                         )}
-                                    </div>
-                                </ChartContainer>
-                                <ChartContainer title={<h3>curl histogram</h3>} leftLabel="count" domainLabel="seconds" labels={data.length > 1 ? data.reduce((rtrn, datum, datumIndex) => {
-                                        rtrn[datum.name] = colors[colorNames[datumIndex]][2]
-                                        return rtrn;
-                                    }, {}) : false}
-                                >
-                                    {Charts.histo(
-                                        data,
-                                        (datum) => jsonpath.query(datum, '$.data.qdup.run.state.time[*]').map(v => {
-                                            return curlToMs(v.real) / 1000
-                                        }),
-                                        "seconds",
-                                        data.length > 1 ? getDataName : () => "curl",
-                                        {
-                                            domain: ['auto', 'auto'],
-                                            decimals: 1,
 
+                                    </ChartContainer>
+                                </div>
+                                <div style={{ breakInside: 'avoid' }}>
+                                    <ChartContainer 
+                                        title={<>curl histogram</>} 
+                                        leftLabel="count" 
+                                        domainLabel="seconds" 
+                                        labels={data.length > 1 ? data.reduce((rtrn, datum, datumIndex) => {
+                                            rtrn[datum.name] = colors[colorNames[datumIndex]][2]
+                                            return rtrn;
+                                        }, {}) : false}
+                                    >
+                                        {Charts.histo(
+                                            data,
+                                            (datum) => jsonpath.query(datum, '$.data.qdup.run.state.time[*]').map(v => {
+                                                return curlToMs(v.real) / 1000
+                                            }),
+                                            "seconds",
+                                            data.length > 1 ? getDataName : () => "curl",
+                                            {
+                                                domain: ['auto', 'auto'],
+                                                decimals: 1,
+
+                                            }
+
+                                        )
                                         }
+                                    </ChartContainer>
+                                </div>
+                                <div style={{ breakInside: 'avoid'}}>
+                                    <ChartContainer 
+                                        title={<>curl cumulative distribution</>} 
+                                        leftLabel="percentile" 
+                                        domainLabel="seconds" 
+                                        labels={data.length > 1 ? data.reduce((rtrn, datum, datumIndex) => {
+                                            rtrn[datum.name] = colors[colorNames[datumIndex]][2]
+                                            return rtrn;
+                                        }, {}) : false}
+                                    >
 
-                                    )
-                                    }
-                                </ChartContainer>
-                                <ChartContainer title={<h3>curl cumulative distribution</h3>} leftLabel="percentile" domainLabel="seconds" labels={data.length > 1 ? data.reduce((rtrn, datum, datumIndex) => {
-                                        rtrn[datum.name] = colors[colorNames[datumIndex]][2]
-                                        return rtrn;
-                                    }, {}) : false}
-                                >
-                                    <div style={{ pageBreakInside: 'avoid' }}>
                                         {Charts.cdf(
                                             data,
                                             (datum) => jsonpath.query(datum, '$.data.qdup.run.state.time[*]').map(v => curlToMs(v.real) / 1000),
@@ -210,8 +222,9 @@ function ColdStart() {
                                                 decimals: 1,
                                             }
                                         )}
-                                    </div>
-                                </ChartContainer>
+
+                                    </ChartContainer>
+                                </div>
                             </React.Fragment>
                         ) : null}
                     </div>

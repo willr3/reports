@@ -104,8 +104,8 @@ function Table({
       }
     },
     useSortBy,
-    useRowSelect,
     useExpanded,
+    useRowSelect,
     hooks => {
       if (useSelect) {
         hooks.visibleColumns.push(columns => [
@@ -155,7 +155,7 @@ function Table({
     setSelectedRows(selectedRowIds)
   }, [setSelectedRows, selectedRowIds])
 
-  if (!data) {
+  if (!data || data.length===0) {
     return (
       <center><Spinner /></center>
     )
@@ -167,32 +167,35 @@ function Table({
         <CardHeader>{header(rows, selectedRowIds, selectedFlatRows)}</CardHeader>
       ) : null}
       <CardBody style={{overflow:'auto'}}>
-        <table className="pf-c-table pf-m-compact pf-m-grid-md" {...getTableProps()}>
+        <table role="grid" className="pf-c-table pf-m-compact pf-m-grid-md" {...getTableProps()}>
           <thead>
             {headerGroups.map((headerGroup, headerGroupIndex) => {
               return (
-                <tr key={headerGroupIndex} {...headerGroup.getHeaderGroupProps()}>
+                <tr role="row" key={headerGroupIndex} {...headerGroup.getHeaderGroupProps()}>
                   {headerGroup.headers.map((column, columnIndex) => {
                     //(
                     // Add the sorting props to control sorting. For this example
                     // we can add them into the header props
 
-                    return (<th className={clsx({
+                    return (<th role="cell" scope="col" className={clsx({
                       "pf-c-table__sort": !column.disableSortBy,
                       "pf-m-selected": column.isSorted
                     })} key={columnIndex} {...column.getHeaderProps(column.getSortByToggleProps())} >
                       {column.disableSortBy ? (
                         <div>{column.render('Header')}</div>
                       ) : (
-                          <button className="pf-c-button pf-m-plain" type="button">
-                            {column.render('Header')}
+                          <button className="pf-c-table__button" type="button">
+                            <div className="pf-c-table__button-content">
+                              <span className="pf-c-table__text">
+                                {column.render('Header')}
+                              </span>
                             {/* Add a sort direction indicator */}
                             {column.disableSortBy ? "" : (
                               <span className="pf-c-table__sort-indicator">
                                 <i className={clsx("fas", column.isSorted ? (column.isSortedDesc ? "fa-long-arrow-alt-down" : "fa-long-arrow-alt-up") : "fa-arrows-alt-v")}></i>
                               </span>
-
                             )}
+                            </div>
                           </button>
                         )}
 

@@ -300,7 +300,6 @@ getMonaco
                         ...position,
                         column: (word.startColumn - 1)
                     })
-                    //console.log("prevWord", prevWord)
                 }
                 var range = {
                     startLineNumber: position.lineNumber,
@@ -308,7 +307,6 @@ getMonaco
                     startColumn: word.startColumn,
                     endColumn: word.endColumn
                 }
-                //console.log("completion", { textUntilPosition, position, word, range })
                 return {
                     suggestions: [
                         // {

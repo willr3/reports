@@ -49,12 +49,12 @@ for (var i = 0; i < colors[colorNames[0]].length; i++) {
 
 
 function Hyperfoil() {
-    const location = useLocation();
+    //const location = useLocation();
+    const location = {search:""}//useLocation();
     const [data, setData] = useState([])
     const getDataName = (v, i, a) => {
         return data[i].name
     }
-    console.log("data", data)
     useEffect(
         fetchSearch("hyperfoil", location.search, setData)
         , [location.search, setData])
@@ -140,7 +140,7 @@ function Hyperfoil() {
                         const phaseNames = data[0].data.hyperfoil.stats.filter(v => v.fork == forkName && v.metric == metricName).map(v => v.total.phase)
                         return (
                             <React.Fragment key={`${forkName}.${metricName}`}>
-                                <h2>{`${forkName} ${metricName}`}</h2>
+                                <h2>{`${forkName} ${metricName}`} detailsData</h2>
                                 <ChartContainer 
                                     title="Summary" 
                                     leftLabel="ms"

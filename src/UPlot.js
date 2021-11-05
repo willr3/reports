@@ -3,9 +3,6 @@ import uPlot from "uplot"
 
 import 'uplot/dist/uPlot.min.css';
 
-console.log(uPlot)
-
-
 const opts = {
     title: "Server Events",
     width: 1920,
@@ -44,10 +41,12 @@ const opts = {
     axes: [
         {},
         {
+            label: "Left",
             scale: "%",
             values: (u, vals, space) => vals.map(v => +v.toFixed(1) + "%"),
         },
         {
+            label: "Right",
             side: 1,
             scale: "mb",
             size: 60,
@@ -63,15 +62,15 @@ const data = [
     [],//ram
     [],//tcp
 ]
-for(let i=0; i<100; i++){
+for(let i=0; i<5000; i++){
     data[0][i]= (i > 0 ? data[0][i-1] : now) + 60 * Math.random()
     data[1][i]=100-100*Math.random()
-    if(i>30 ){
+    if(i>2000 ){
         data[2][i]=null
     }else{
         data[2][i]=100-100*Math.random()
     }
-    data[3][i]=100-100*Math.random()
+    data[3][i]=10000-10000*Math.random()
 }
 
 export default () => {
@@ -79,7 +78,6 @@ export default () => {
     const defaultRef = React.useRef()
 
     useEffect(()=>{
-        console.log("used effect")
         new uPlot(opts,data,defaultRef.current)
     },[])
     return (

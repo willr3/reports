@@ -32,6 +32,7 @@ export default ({
     rightLabel = undefined,
     domainLabel = undefined,
     labels = {},
+    onDoubleClick = (e)=>{},
     style = { backgroundColor: '#ffffff' },
     children
 }) => {
@@ -56,7 +57,7 @@ export default ({
                                 </div>
                             </div>
                         ) : null}
-                        <div className="chart-content" style={{ flexGrow: 1 }}>
+                        <div className="chart-content" style={{ flexGrow: 1 }} onDoubleClick={onDoubleClick}>
                             {children}
                         </div>
                         {rightLabel ? (

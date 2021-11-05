@@ -1,16 +1,16 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import ReactDOM from "react-dom";
+//import ReactDOM from "react-dom";
 import {
     Button,
-    Spinner,
+    //Spinner,
     Tooltip,
 } from '@patternfly/react-core';
 import {
-    ThIcon,
-    CaretDownIcon,
+    // ThIcon,
+    // CaretDownIcon,
     CopyIcon,
     DownloadIcon,
-    EditIcon
+    // EditIcon
 } from '@patternfly/react-icons';
 
 import Loader from "react-spinners/ClipLoader";
@@ -22,31 +22,26 @@ import './CaptureContainer.css';
 
 const ClipboardItem = window.ClipboardItem
 
+const selectorPath = ".pf-c-card__body" //'main.pf-c-page__main'
+
 export const getCanvas = (node, opts = {}) => {
-    console.log("getCanvas.scrollY",window.scrollY,window.pageYOffset)
-    const scrollTop = document.querySelector('main.pf-c-page__main').scrollTop
-    console.log("getCanvas.scrollTop",scrollTop)
-    document.querySelector('main.pf-c-page__main').scrollTop = scrollTop + 10;
+    const scrollTop = document.querySelector(selectorPath).scrollTop
+    document.querySelector(selectorPath).scrollTop = scrollTop + 10;
     return html2canvas(node, {
     ...opts,
     onclone:(doc)=>{
         const root = doc.getElementById("root");
-        const main = doc.querySelector('main.pf-c-page__main');
+        const main = doc.querySelector(selectorPath);
         if(main){
             main.scrollTop = scrollTop
-            console.log("onclone.main",main,main.scrollTop)
         }
         if(root){
             root.style.height = 'auto';
             root.id = "not-root"
-            console.log("root",root.getBoundingClientRect())    
         }
-        console.log("onclone.doc",doc,doc.defaultView,window.scrollY)
 
         return new Promise((resolve, reject) => {
             setTimeout(() => {
-                console.log("postTimeout.main.top",doc.querySelector('main.pf-c-page__main').scrollTop)
-                console.log("postTimeout.root.height",root.getBoundingClientRect())
                 resolve()
             }, 400)
         })
@@ -145,7 +140,7 @@ export default ({
         loading={true}
     /> : <CopyIcon />
     return (
-        <div className="capture-container" ref={defaultRef} style={{ breakInside: 'avoid' }}>
+        <div className="capture-container" ref={defaultRef} style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
             {children}
             <span className="capture-controls" data-html2canvas-ignore={true} >
                 <Tooltip content="download">

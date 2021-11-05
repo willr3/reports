@@ -21,8 +21,6 @@ var DateTime = require('luxon').DateTime;
 
 const dataPath = (process.env.DATA_PATH || __dirname+"/data")+"/"
 
-console.log("dataPath",dataPath)
-
 wss.broadcast = (data, skip) => {
     let encoded = JSON.stringify(data);
     wss.clients.forEach((client) => {

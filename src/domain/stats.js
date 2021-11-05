@@ -127,7 +127,6 @@ export const getCdf = (accessor,useTaylor=true,decimals=0,hdrOpts={}) => (datum,
 export const getBuckets = (accessor,decimals=0,hdrOpts={}) => (datum,datumIndex,datasets) => {
     const histogram = hdr.build(hdrOpts);
     const scale = Math.pow(10,decimals)
-    console.log("scale",scale)
     apply(accessor,datum,datumIndex,datasets,{method:'value'})
         .forEach( v=> histogram.recordValue(Math.floor(scale*v)) )
 

@@ -11,7 +11,6 @@ const DATA = [{
         SP: "dos"
     }    
 }]
-
 test("apply() key",()=>{
     expect(apply("one",DATA[0],0,DATA)).toEqual({EN: "one", SP: "dos"})
 })

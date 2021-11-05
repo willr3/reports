@@ -17,7 +17,7 @@ import {
     Stack, StackItem,
     TextContent,
     Title,
-    Toolbar, ToolbarGroup, ToolbarSection, ToolbarItem
+    Toolbar, ToolbarContent, ToolbarGroup,  ToolbarItem //ToolbarSection
 } from '@patternfly/react-core';
 import {
     PlusIcon,
@@ -29,6 +29,10 @@ import {
 } from '@patternfly/react-icons';
 
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import {Prism as SyntaxHighlighter} from 'react-syntax-highlighter'
+import {dark} from 'react-syntax-highlighter/dist/esm/styles/prism'
+
 
 import '@patternfly/patternfly/patternfly.css'; //have to use this import to customize scss-variables.scss
 import '@patternfly/patternfly/patternfly-addons.css'; //have to use this import to customize scss-variables.scss
@@ -69,6 +73,10 @@ const notebook = {
 #### h4 header
 ##### h5 header
 ###### h6 header
+
+\`\`\`javacscript
+console.log("string",variable)
+\`\`\`
 
 Now some inline markup like _italics_,  **bold**, 
 and \`code()\`. Note that underscores 
@@ -120,7 +128,7 @@ const BaseCell = ({ name = "base", index = 0, children, onDelete = (index) => { 
             <CardHeader className=" pf-u-py-sm" style={{}}>
                 <Toolbar className="pf-u-display-flex pf-u-justify-content-space-between foo">
                     <ToolbarGroup>
-                        <ToolbarItem><Title size="xl">{name}</Title></ToolbarItem>
+                        <ToolbarItem><Title headingLevel="h4" size="xl">{name}</Title></ToolbarItem>
                     </ToolbarGroup>
                     <ToolbarGroup className="">
                         <ToolbarItem>
@@ -204,7 +212,39 @@ const AddCell = ({ index = 0, onAdd = (index, type) => { } }) => {
 const RenderMarkdown = ({ source = "" }) => {
     return (
         <TextContent>
-            <ReactMarkdown source={source}
+            <ReactMarkdown children={source} remarkPlugins={[remarkGfm]} 
+                components={{
+                    //'heading': ({node,...props})=><h1 className={"pf-c-title " + (["pf-m-4xl", "pf-m-3xl", "pf-m-2xl", "pf-m-xl", "pf-m-lg", "pf-m-md"][props.level - 1])} {...props}/>,
+                    code({node, inline, className, children, ...props}) {
+                        const match = /language-(\w+)/.exec(className || '')
+                        return !inline && match ? (
+                          <SyntaxHighlighter
+                            children={String(children).replace(/\n$/, '')}
+                            style={dark}
+                            language={match[1]}
+                            PreTag="div"
+                            {...props}
+                          />
+                        ) : (
+                          <code className={className} {...props}>
+                            {children}
+                          </code>
+                        )
+                    },
+                    h1(props){return (<h1 className="pf-c-title pf-m-4xl" {...props}/>)},
+                    h2(props){return (<h2 className="pf-c-title pf-m-3xl" {...props}/>)},
+                    h3(props){return (<h3 className="pf-c-title pf-m-2xl" {...props}/>)},
+                    h4(props){return (<h4 className="pf-c-title pf-m-xl" {...props}/>)},
+                    h5(props){return (<h5 className="pf-c-title pf-m-lg" {...props}/>)},
+                    h6(props){return (<h6 className="pf-c-title pf-m-md" {...props}/>)},
+                    ol(props){return (<ol className="pf-c-list" {...props}/>)},
+                    ul(props){return (<ul className="pf-c-list" {...props}/>)},
+                    //input({checked,disabled,type,...props})
+                    //li(props){return (<li className="" {...props}/>)}
+                    table(props){
+                        return (<table className="pf-c-table pf-m-compact pf-m-grid-md" {...props}/>)
+                    }
+                }}
                 renderers={{
                     "heading": (item) => {
                         return React.createElement("h1", {
@@ -263,7 +303,7 @@ export default ({ }) => {
                 </DrawerActions>
             </DrawerHead>
             <Toolbar id="selection">
-                <ToolbarSection aria-label="wtf is this required">
+                {/* <ToolbarSection aria-label="wtf is this required"> */}
                     <ToolbarItem style={{ width: '100%' }}>
                         <InputGroup>
                             <TextInput name="selectionInput" id="selectionInput" type="search" aria-label="add data" />
@@ -277,7 +317,7 @@ export default ({ }) => {
                             </Button>
                         </InputGroup>
                     </ToolbarItem>
-                </ToolbarSection>
+                {/* </ToolbarSection> */}
             </Toolbar>
             <div className="pf-c-simple-list">
                 <h2 className="pf-c-simple-list__title">
@@ -297,6 +337,7 @@ export default ({ }) => {
             </div>
         </DrawerPanelContent>
     )
+    console.log("render ReportBuilder",Date.now())
     return (
         <Drawer
             isExpanded={isExpanded}
@@ -306,13 +347,15 @@ export default ({ }) => {
                 <DrawerContentBody>
                     <Stack>
                         <StackItem>
-                            <Toolbar className="pf-l-toolbar pf-u-justify-content-space-between pf-u-mx-xl pf-u-my-md">
+                            <Toolbar className="">{/*pf-l-toolbar pf-u-justify-content-space-between pf-u-mx-xl pf-u-my-md */}
+                                <ToolbarContent>
                                 <ToolbarGroup>
                                     <ToolbarItem>Report Builder</ToolbarItem>
                                 </ToolbarGroup>
                                 <ToolbarGroup className="pf-m-align-right pf-m-no-fill">
                                     <ToolbarItem onClick={() => setExpanded(!isExpanded)}><CogIcon /></ToolbarItem>
                                 </ToolbarGroup>
+                                </ToolbarContent>
                             </Toolbar>
                         </StackItem>
                         <StackItem isFilled={true}>

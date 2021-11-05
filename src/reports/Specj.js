@@ -41,9 +41,6 @@ import {
   gcCharts 
 } from '../domain/gc';
 
-
-console.log({chartColorNames,chartColors})
-
 const getId = (datum)=>datum.data.qdup.state["mwperf-server03.perf.lab.eng.rdu2.redhat.com"].RUNTIME_NAME+"_"+datum.name+"_"+jsonpath.query(datum.data, `$.faban.run.SPECjEnterprise['fa:runConfig']['fa:scale']['text()']`)
 
 const useZoom = () => {
@@ -169,7 +166,6 @@ const joinVmstat = (data, path) =>{
     if(key && key.length == 1){
       key = key[0]
     }
-    console.log({key})
     found.forEach(entry => {
       const ts = DateTime.fromFormat(entry[key], "yyyy-MM-dd HH:mm:ss", { zone: 'America/New_York' }).toMillis();
       if( ts >= minTs && ts <= maxTs){
@@ -275,14 +271,13 @@ const dstatCharts = (all, path) => {
   )
 }
 function Specj() {
-  const location = useLocation();
+  //const location = useLocation();
+  const location = {search:""}//useLocation();
   const [data, setData] = useState([])
-  console.log("specj",data)
   useEffect(
     fetchSearch("specjEnterprise", location.search, setData)
     , [location.search, setData])
   const dstats = joinVmstat(data, `$['mwperf-server03'].vmstat.*`)
-  console.log("dstats",dstats)
   const gcs = joinGc(data, `$['mwperf-server03'].gclog[?( @.before && @.after && @.seconds )]`);
   const reasons = {};
 

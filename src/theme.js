@@ -1,6 +1,3 @@
-
-
-
 const theme = {
     colors: {
         primary: {
@@ -42,11 +39,13 @@ const theme = {
         },
         chart: {
             blue:  ["#8BC1F7","#519DE9","#0066CC","#004B95","#002F5D"],
-            green: ["#A2D99C","#88D080","#6EC664","#509149","#3B6C37"],
-            purple:["#CBC0FF","#B1A3FF","#A18FFF","#8476D1","#6753AC"],
-            cyan:  ["#8BB4B9","#5C969D","#2E7981","#015C65","#00434B"],
+            green: ["#BDE2B9","#7CC674","#4CB140","#38812F","#23511E"],
+            purple:["#B2B0EA","#8481DD","#5752D1","#3C3D99","#2A265F"],
+            cyan:  ["#A2D9D9","#73C5C5","#009596","#005F60","#003737"],
             gold:  ["#F9E0A2","#F6D173","#F4C145","#F0AB00","#C58C00"],
-            orange:["#F4B678","#EF9234","#EC7A08","#C46100","#8F4700"]
+            orange:["#F4B678","#EF9234","#EC7A08","#C46100","#8F4700"],
+            red:["#C9190B","#A30000","#7D1007","#470000","#2C0000"],
+            grey:["#D2D2D2","#BBB","#8B8D8F","#72767B","#4D5258"]
         }
     }
 }
@@ -64,6 +63,4 @@ export const chartColors = Object.keys(theme.colors.chart).reduce((rtrn,name,nam
     }
     return rtrn;
 },[])
-
-
 export default theme;

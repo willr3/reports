@@ -18,6 +18,7 @@ import {
     NavVariants,
     Page,
     PageHeader,
+    PageHeaderTools,
     PageSection,
     PageSidebar,
     Title,
@@ -39,6 +40,20 @@ const DEFAULT_GROUP = ""
 
 // runs on the datase to create the summary json for each entry
 const accessors = {
+    eventingHyperfoil: {
+        start: `$.qdup.run.timestamps.start`,
+        stop: `$.qdup.run.timestamps.stop`,
+        hfStart: `$.hf.info.startTime`,
+        hfStop: `$.hf.info.terminateTime`,
+        version: `$.hf.version`,
+        agentCount: `$.hf.agents.length`,
+        statCount: `$.hf.stats.length`,
+        testcase: `$.qdup.run.state.testcase`,
+        errorCount: '$.hf.info.errors.length',
+        failureCount: '$.hf.failures.length',
+        failures: '$.hf.failures',
+        runId: `$.qdup.run.state["mwperf-server01.perf.lab.eng.rdu2.redhat.com"].runId`,
+    },
     coldStart: {
         start: `$.qdup.run.timestamps.start`,
         duration: `(json)=>{
@@ -163,6 +178,7 @@ const accessors = {
 };
 
 export default () => {
+    console.log("Runs",Date.now())
     const { groupId = DEFAULT_GROUP } = useParams();
     const [showNav, setShowNav] = useState(false);
     const dispatch = useDispatch();
@@ -172,7 +188,8 @@ export default () => {
         webProfile: 'web',
         specjEnterprise: 'specj',
         techempower: 'techempower',
-        coldStart: 'coldStart'
+        coldStart: 'coldStart',
+        eventingHyperfoil: "eventingHyperfoil"
     }
 
     const columns = {
@@ -217,6 +234,51 @@ export default () => {
                     const toRender = Array.isArray(value) ? value : [value]
                     return value.map((v, i) => (<span key={i} className="pf-c-badge pf-m-read">{v}</span>))
                 }
+            }
+        ],
+        eventingHyperfoil: [
+            // start: `$.qdup.run.timestamps.start`,
+            // stop: `$.qdup.run.timestamps.stop`,
+            // hfStart: `$.hf.info.startTime`,
+            // hfStop: `$.hf.info.terminateTime`,
+            // version: `$.hf.version`,
+            // agentCount: `$.hf.agents.length`,
+            // statCount: `$.hf.stats.length`,
+            // testcase: `%.qdup.state.testcase`            
+            {
+                Header: "name", accessor: "file",
+                Cell: (arg) => {
+                    const { cell: { value } } = arg
+                    return (
+                        <NavLink exact={true} to={`/report/eventingHyperfoil?q=${value}`} activeClassName="pf-m-current">
+                            {value}
+                        </NavLink>
+                    )
+                }
+            },
+            {
+                Header: 'start', accessor: ({ data: { start, stop } }, rowIndex) => {
+                    return DateTime.fromMillis(start).toFormat("yyyy-MM-dd HH:mm:ss")
+                }
+            },
+            {
+                Header: 'stop', accessor: ({ data: { start, stop } }, rowIndex) => {
+                    return DateTime.fromMillis(stop).toFormat("yyyy-MM-dd HH:mm:ss")
+                }
+            },
+            {
+                Header: 'testcase', accessor: 'data.testcase'
+            },
+            {
+                Header: 'runId', accessor: 'data.runId'
+            },
+            {
+                Header: 'duration', accessor: ({ data: { hfStart, hfStop } }, rowIndex) => {
+                    return DateTime.fromMillis(hfStop).diff(DateTime.fromMillis(hfStart)).toFormat("hh:mm:ss")
+                }
+            },
+            {
+                Header: 'failures', accessor: "data.failureCount"
             }
         ],
         hyperfoil: [
@@ -419,7 +481,6 @@ export default () => {
     const data = useSelector(state => {
         return state.groups[groupId] || []
     });
-    console.log("data", data)
 
     //this fires before useEffect takes place, need to detect when groupId and data are out of sync
     const qStr = useMemo(() => {
@@ -451,7 +512,8 @@ export default () => {
     }, [groupId])
     const Header = (
         <PageHeader
-            toolbar={
+            headerTools={
+                <PageHeaderTools>
                 <Toolbar className="pf-l-toolbar pf-u-justify-content-space-between pf-u-mx-xl pf-u-my-md">
                     <ToolbarGroup>
                         <ToolbarItem>
@@ -461,6 +523,7 @@ export default () => {
                         </ToolbarItem>
                     </ToolbarGroup>
                 </Toolbar>
+                </PageHeaderTools>
             }
             logo=""
             //toolbar=""
@@ -498,9 +561,17 @@ export default () => {
                         </NavLink>
                     </NavItem>
                 </NavGroup>
+                <NavGroup title="Openshift Eventing">
+                    <NavItem itemId={0} isActive={false}>
+                        <NavLink exact={true} to="/eventingHyperfoil" activeClassName="pf-m-current">
+                            hyperfoil testcase
+                        </NavLink>
+                    </NavItem>
+                </NavGroup>
+
                 <NavGroup title="Testing">
                     <NavItem itemId={0} isActive={false}>
-                        <NavLink exact={true} to="/hyperfoil" activeClassName="pf-m-current">
+                        <NavLink exact={true} to="/hyperfoil" className={({isActive})=>isActive ? "pf-m-current" : "not_active"}>
                             hyperfoil
                         </NavLink>
                     </NavItem>
@@ -516,13 +587,15 @@ export default () => {
     const Sidebar = (
         <PageSidebar nav={Navigation} isNavOpen={showNav} theme="dark" />
     )
+    
     const renderRowSubComponent = React.useCallback(
-        ({ row }) => (
+        ({ row }) => { return (
             <div className="pf-c-content">
                 <div key="url" style={{ fontSize: '85%' }}>{row.original.data.url}</div>
                 {(Array.isArray(row.original.data.files) ? row.original.data.files : [row.original.data.files]).map((fileName, fileIndex) => (<div key={"file-" + fileIndex} style={{ fontSize: '85%' }}>{fileName}</div>))}
+                {(Array.isArray(row.original.data.failures) ? row.original.data.failures : []).map((failure,index)=>(<div key={`failure-${index}`} style={{ fontSize: '85%'}}>{`${failure.phase} ${failure.metric} ${failure.message}`}</div>) )}
             </div>
-        ),
+        )},
         []
     )
     return (

@@ -90,7 +90,8 @@ const pageBreakInside = { pageBreakInside: 'avoid' };
 const getTests = (json) => (Object.entries(json.rawData).filter(v => v[0] !== "commitCounts" && v[0] !== "slocCounts" && Object.getOwnPropertyNames(v[1]).length > 0).map(v => v[0]))
 function TechEmpower() {
     const [showNav, setShowNav] = useState(false);
-    const location = useLocation();
+    //const location = useLocation();
+    const location = {search:""}//useLocation();
     const [data, setData] = useState([])
     global["data"] = data;
 

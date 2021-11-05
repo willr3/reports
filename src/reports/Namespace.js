@@ -16,6 +16,8 @@ import {
     XAxis,
     YAxis,
     Tooltip,
+    PieChart,
+    Pie,
     ReferenceArea,
     ReferenceLine,
     ResponsiveContainer,
@@ -32,18 +34,9 @@ import { fetchSearch } from '../redux/actions';
 import ChartContainer from '../components/ChartContainer';
 import { chartColors } from '../theme';
 import CaptureContainer from '../components/CaptureContainer';
+import {Table} from '../domain/charts';
+import {PrometheusChart} from '../domain/prometheus';
 
-const useZoom = () => {
-    const [left, setLeft] = useState(false)
-    const [right, setRight] = useState(false)
-    return {
-      left,
-      right,
-      setLeft,
-      setRight,
-    };
-  }
-  
 
 const colors = {
     blue: ["#8BC1F7", "#519DE9", "#0066CC", "#004B95", "#002F5D"],
@@ -162,6 +155,7 @@ const getPrometheusSum = (filter, target = "pod" /*namespace*/, stat = "cpu" /*m
     )
 }
 
+
 const prometheusChart = (data, search, target = "pod", stat = "cpu", cfg = {}) => {
     const {
         title=`${target} ${search} Σ(${stat})`, 
@@ -199,8 +193,8 @@ const prometheusChart = (data, search, target = "pod", stat = "cpu", cfg = {}) =
                     <ComposedChart
                         data={chartData}
                         style={{ userSelect: 'none' }}
-                        onMouseDown={(e)=>console.log("down",chartData.length,e)}
-                        onMouseUp={(e)=>{console.log("up",e)}}
+                        onMouseDown={(e)=>{}}
+                        onMouseUp={(e)=>{}}
                     >
                         <CartesianGrid strokeDasharray="3 3" />
                         <Tooltip
@@ -256,7 +250,120 @@ const prometheusChart = (data, search, target = "pod", stat = "cpu", cfg = {}) =
         </div>
     )
 }
+const ReportSeries = ({ 
+    data = [],
+    getName = (v)=>v.name,
+    getSeries = (v)=>v,
+    title="",
+    valueKey="",
+})=>{
+    const getValues = (v, i, a) => apply(getSeries, v, i, a).map(v => v[valueKey] / 1000)
+    const statData = data.map(getStats(getValues, { decimals: 2 })).map((stat,index)=>{
+        return {
+            ...stat,
+            name: getDataName(data[index],index,data)
+        }
+    })
+    if (data.length === 0){
+        return <></>
+    }else {
+        return (
+            <React.Fragment>
+                <ChartContainer title={<>{title} statistics</>} >
+                    <Table
+                        data={statData}
+                        header="stat"
+                        selectors={[
+                            {name: "totalCount"},
+                            {name: "min"},
+                            {name: "max"},
+                            {name: "mean"},
+                            {name: 50},
+                            {name: 90},
+                            {name: 99},
+                            {name: 99.9},
+                            {name: 99.99},
+                            {name: 99.999}
+                        ]}
+                        getName={getDataName}
+                    />
+                </ChartContainer>
+                <ChartContainer 
+                    title={title} 
+                    leftLabel="seconds"
+                    domainLabel="services"
+                >
+                    <ResponsiveContainer width="100%" height={360}>
+                        <ComposedChart
+                            data={reducer(
+                                data,
+                                {
+                                    oc: 'millis'
+                                },
+                                {
+                                    getName,
+                                    getSeries,
+                                    getDomain: (entry, entryIndex, series) => entry.index,
+                                }
+                            )}
+                            style={{ userSelect: 'none' }}
+                        >
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <Tooltip
+                                formatter={(v) => v / 1000}
+                            />
+                            <XAxis
+                                allowDataOverflow={true}
+                                type="number"
+                                scale="linear"
+                                dataKey="__domainValue"
+                                domain={['auto', 'auto']}
+                            />
+                            <YAxis
+                                yAxisId={0}
+                                allowDataOverflow={true}
+                                domain={[0, 'auto']}
+                                tickFormatter={(v) => (v / 1000)}
+                            />
+                            {data.map((datum, datumIndex, datasets) => {
+                                const name = getName(datum,datumIndex,datasets)
+                                return(<Line
+                                    key={`${name}-oc`}
+                                    yAxisId={0}
+                                    name={`${name}`}
+                                    dataKey={`${name}-oc`}
+                                    stroke={colors[colorNames[datumIndex]][1]}
+                                    fill={colors[colorNames[datumIndex]][1]}
+                                    connectNulls={true}
+                                    dot={false}
+                                    isAnimationActive={false}
+                                    style={{ strokeWidth: 2 }}
+                                />)
+                            })}
 
+                        </ComposedChart>
+                    </ResponsiveContainer>
+                </ChartContainer>
+                <Charts.Histo
+                    title={title+" histogram"}
+                    data={data}
+                    selector={getValues}
+                    unit="seconds"
+                    getName={getDataName}
+                    decimals={1}
+                />
+                <Charts.CDF
+                    title={title+" cumulative distribution"}
+                    data={data}
+                    selector={getValues}
+                    unit="seconds"
+                    getName={getDataName}
+                    decimals={2}
+                />                
+            </React.Fragment>
+        )
+    }
+}
 const reportSeries = (name, getSeries, valueKey, getName = (v) => v.name, data) => {
     const getValues = (v, i, a) => apply(getSeries, v, i, a).map(v => v[valueKey] / 1000)
     const stats = reducer(
@@ -440,11 +547,12 @@ const reportSeries = (name, getSeries, valueKey, getName = (v) => v.name, data) 
         </React.Fragment>
     )
 }
+
 const getDataName = (v) => v.name;
 function Namespace() {
-    const location = useLocation();
+    //const location = useLocation();
+    const location = {search:""}//useLocation();
     const [data, setData] = useState([])
-    console.log("data", data)
     useEffect(
         fetchSearch("createNamespace", location.search, setData)
         , [location.search, setData])
@@ -474,13 +582,22 @@ function Namespace() {
     if(data.length>0){
         data.forEach((datum,datumIndex)=>{
             const {categories,values} = getPrometheusCategorySum((metric)=>metric.namespace.startsWith("perf-test") ? "perf-test" : metric.namespace)(datum,datumIndex,data)
-            console.log("categories",categories)
             const sorted = Object.entries(categories).sort((a,b)=>b[1] - a[1])
-            console.log("sorted["+datumIndex+"]",sorted.slice(0,10))
     
         })
     }
 
+    let pieData = []
+    let pieSum = 0.0
+    if(data.length > 0){
+        pieData = Object.entries(getPrometheusCategorySum((metric)=>metric.namespace.startsWith("perf-test") ? "perf-test" : metric.namespace)(data[0],0,data).categories)
+        .map(([key,value])=>{
+            pieSum+=value;
+            return ({key,value})
+        })
+        pieData.sort((a,b)=>b.value - a.value)
+        pieData.forEach(entry=>entry.value=entry.value/pieSum)
+    }
 
     return (
         <>
@@ -491,80 +608,190 @@ function Namespace() {
                         <h1>Serverless Namespace Count Testing</h1>
                         {data.length > 0 ? (
                             <React.Fragment>
-                                <div style={{ pageBreakInside: 'avoid' }}>
-                                    <h3>Operators</h3>
-                                    <table className="pf-c-table pf-m-compact pf-m-grid-md">
-                                        <thead>
-                                            <tr>
-                                                <th>Operator</th>
-                                                {data.map((datum, datumIndex) => (<th key={datumIndex}>{datum.name}</th>))}
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {reducer(
-                                                data,
-                                                {
-                                                    version: '$.status.currentCSV'
-                                                },
-                                                {
-                                                    getName: (datum, datumIndex, datasets) => datum.name,
-                                                    getSeries: '$.data.oc.operators.items',
-                                                    getDomain: '$.spec.name',
+                                <ChartContainer title={"Operators"}>
+                                    <Table
+                                        data={data}
+                                        header="Operator"
+                                        layout="columns"
+                                        selectors={
+                                            [...new Set(data.flatMap((datum)=>{
+                                                return jsonpath.query(datum,"$.data.oc.operators.items[*].spec.name")
+                                            }))].map((operator,operatorIndex)=>{
+                                                return {
+                                                    header: operator,
+                                                    accessor: (v,i,a)=>{
+                                                        return jsonpath.value(v,`$.data.oc.operators.items[?(@.spec.name === '${operator}')].status.currentCSV`)
+                                                    }
                                                 }
-                                            ).map((operator, operatorIndex) => (
-                                                <tr key={operatorIndex}>
-                                                    <th>{operator.__domainValue}</th>
-                                                    {data.map((datum, datumIndex) => {
-                                                        const name = datum.name;
-                                                        return <td key={datumIndex}>{operator[`${name}-version`]}</td>
-                                                    })}
-                                                </tr>
-                                            ))
-                                            }
-                                        </tbody>
-                                    </table>
-                                </div>
-                                {prometheusChart(data,"","pod","cpu",{
-                                    title: 'all pods Σ(cpu)'
-                                })}
-                                {prometheusChart(data,"","pod","mem",{
-                                    title: 'all pods Σ(mem)', 
-                                    tickFormatter: (v)=>Number(v/(1024*1024*1024)).toFixed(1)+"G",
-                                    formatter: (v)=>Number(v/(1024*1024*1024)).toFixed(2)+"G",
-                                })}
-                                {prometheusChart(data,(v)=>v.namespace == "knative-serving-ingress","namespace","cpu",{
-                                    title: 'knative-serving-ingress namespace Σ(cpu)'
-                                })}
-                                {prometheusChart(data,(v)=>v.namespace == "knative-serving-ingress","namespace","mem",{
-                                    title: 'knative-serving-ingress namespace Σ(mem)', 
-                                    tickFormatter: (v)=>Number(v/(1024*1024*1024)).toFixed(1)+"G"
-                                })}
-                                {prometheusChart(data,(v)=>v.namespace == "knative-serving","namespace","cpu",{
-                                    title: 'knative-serving namespace Σ(cpu)'
-                                })}
-                                {prometheusChart(data,(v)=>v.namespace == "knative-serving","namespace","mem",{
-                                    title: 'knative-serving namespace Σ(mem)', 
-                                    tickFormatter: (v)=>Number(v/(1024*1024*1024)).toFixed(1)+"G",
-                                    formatter: (v)=>Number(v/(1024*1024*1024)).toFixed(2)+"G",
-                                })}
-                                {prometheusChart(data,"openshift-ovn-kubernetes","namespace","cpu",{})}
-                                {prometheusChart(data,"openshift-ovn-kubernetes","namespace","mem",{ 
-                                    tickFormatter: (v)=>Number(v/(1024*1024*1024)).toFixed(2)+"G",
-                                    formatter: (v)=>Number(v/(1024*1024*1024)).toFixed(2)+"G",
-                                })}
-                                {prometheusChart(data,"ovnkube-master","pod","cpu",{})}
-                                {prometheusChart(data,"ovnkube-master","pod","mem",{ 
-                                    tickFormatter: (v)=>Number(v/(1024*1024*1024)).toFixed(1)+"G",
-                                    formatter: (v)=>Number(v/(1024*1024*1024)).toFixed(2)+"G",
-                                })}
-                                {prometheusChart(data,"ovnkube-node","pod","cpu",{})}
-                                {prometheusChart(data,"ovnkube-node","pod","mem",{ 
-                                    tickFormatter: (v)=>Number(v/(1024*1024*1024)).toFixed(1)+"G",
-                                    formatter: (v)=>Number(v/(1024*1024*1024)).toFixed(2)+"G",
-                                })}
+                                            })
+                                        }
+                                        getName={getDataName}
+                                    />
+                                </ChartContainer>
+                                {/* <ChartContainer title="top namespaces">
+                                    <ResponsiveContainer width="100%" height={360}>
+                                        <PieChart
+                                            // width={"100%"}
+                                            height={360}
+                                        >
+                                            <Pie
+                                                data={pieData}
+                                                dataKey="value"
+                                                nameKey="key"
+                                                label={(props)=>{return (props.name+" "+props.value)}}
+                                            />
+                                        </PieChart>
+                                    </ResponsiveContainer>
+                                </ChartContainer> */}
+                                <PrometheusChart 
+                                    data={data}
+                                    search=""
+                                    target="pod"
+                                    stat="cpu"
+                                    title='all pods Σ(cpu)'
+                                    getStart={(v)=>Math.floor(jsonpath.value(v, "$.data.qdup.run.timestamps.start"))}
+                                    //getStop={(v)=>Math.floor(jsonpath.value(v, "$.data.qdup.run.timestamps.stop"))}
+                                    setDomain={false}
+                                />
+                                <PrometheusChart 
+                                    data={data}
+                                    search=""
+                                    target="pod"
+                                    stat="mem"
+                                    title='all pods Σ(mem)'
+                                    getStart={(v)=>Math.floor(jsonpath.value(v, "$.data.qdup.run.timestamps.start"))}
+                                    //getStop={(v)=>Math.floor(jsonpath.value(v, "$.data.qdup.run.timestamps.stop"))}
+                                    setDomain={false}
+                                    tickFormatter={(v)=>Number(v/(1024*1024*1024)).toFixed(1)+"G"}
+                                    formatter={(v)=>Number(v/(1024*1024*1024)).toFixed(2)+"G"}
+                                />
+                                <PrometheusChart
+                                    data={data}
+                                    search={(v)=>v.namespace == "knative-serving-ingress"}
+                                    target="namespace"
+                                    stat="cpu"
+                                    title='knative-serving-ingress namespace Σ(cpu)'
 
-                                {reportSeries("Namespace", namespaceTimes, "millis", getDataName, data)}
-                                {reportSeries("Service", serviceTimes, "millis", getDataName, data)}
+                                />
+                                <PrometheusChart
+                                    data={data}
+                                    search={(v)=>v.namespace == "knative-serving-ingress"}
+                                    target="namespace"
+                                    stat="mem"
+                                    title='knative-serving-ingress namespace Σ(mem)'
+                                    tickFormatter={(v)=>Number(v/(1024*1024*1024)).toFixed(1)+"G"}
+                                    formatter={(v)=>Number(v/(1024*1024*1024)).toFixed(2)+"G"}
+                                />
+                                <PrometheusChart
+                                    data={data}
+                                    search={(v)=>v.namespace == "knative-serving"}
+                                    target="namespace"
+                                    stat="cpu"
+                                    title='knative-serving namespace Σ(cpu)'
+
+                                />
+                                <PrometheusChart
+                                    data={data}
+                                    search={(v)=>v.namespace == "knative-serving"}
+                                    target="namespace"
+                                    stat="mem"
+                                    title='knative-serving namespace Σ(mem)'
+                                    tickFormatter={(v)=>Number(v/(1024*1024*1024)).toFixed(1)+"G"}
+                                    formatter={(v)=>Number(v/(1024*1024*1024)).toFixed(2)+"G"}
+                                />
+                                <PrometheusChart
+                                    data={data}
+                                    search={"openshift-ovn-kubernetes"}
+                                    target="namespace"
+                                    stat="cpu"
+                                    title='openshift-ovn-kubernetes namespace Σ(cpu)'
+
+                                />
+                                <PrometheusChart
+                                    data={data}
+                                    search={"openshift-ovn-kubernetes"}
+                                    target="namespace"
+                                    stat="mem"
+                                    title='openshift-ovn-kubernetes namespace Σ(mem)'
+                                    tickFormatter={(v)=>Number(v/(1024*1024*1024)).toFixed(1)+"G"}
+                                    formatter={(v)=>Number(v/(1024*1024*1024)).toFixed(2)+"G"}
+                                />
+                                <PrometheusChart
+                                    data={data}
+                                    search="ovnkube-master"
+                                    target="pod"
+                                    stat="cpu"
+                                    // title='ovnkube-master namespace Σ(cpu)'
+
+                                />
+                                <PrometheusChart
+                                    data={data}
+                                    search="ovnkube-master"
+                                    target="pod"
+                                    stat="mem"
+                                    // title='ovnkube-master namespace Σ(mem)'
+                                    tickFormatter={(v)=>Number(v/(1024*1024*1024)).toFixed(1)+"G"}
+                                    formatter={(v)=>Number(v/(1024*1024*1024)).toFixed(2)+"G"}
+                                />
+                                <PrometheusChart
+                                    data={data}
+                                    search="ovnkube-node"
+                                    target="pod"
+                                    stat="cpu"
+                                    // title='ovnkube-master namespace Σ(cpu)'
+
+                                />
+                                <PrometheusChart
+                                    data={data}
+                                    search="ovnkube-node"
+                                    target="pod"
+                                    stat="mem"
+                                    // title='ovnkube-master namespace Σ(mem)'
+                                    tickFormatter={(v)=>Number(v/(1024*1024*1024)).toFixed(1)+"G"}
+                                    formatter={(v)=>Number(v/(1024*1024*1024)).toFixed(2)+"G"}
+                                />
+                                <ReportSeries
+                                    data={data}
+                                    getName={getDataName}
+                                    getSeries={(datum,datumIndex, datasets)=> getProfile(datum).timers
+                                        .filter(timer=>
+                                            timer.name.startsWith("Sh-await-callback") &&
+                                            timer.name.includes("kind: Namespace")
+                                        )
+                                        .map((timer,index)=> ({ ...timer, index }))}
+                                    title="Namespace"
+                                    valueKey="millis"
+                                />
+                                <ReportSeries
+                                    data={data}
+                                    getName={getDataName}
+                                    getSeries={(datum,datumIndex, datasets)=>getProfile(datum).timers
+                                        .filter(timer =>
+                                            timer.name.startsWith("Sh-await-callback") &&
+                                            timer.name.includes("serving.knative.dev/v1")
+                                        )
+                                        .map((timer, index) => ({ ...timer, index }))}
+                                    title="Service"
+                                    valueKey="millis"
+                                />
+                                <ReportSeries
+                                    data={data}
+                                    getName={getDataName}
+                                    getSeries={(datum, datumIndex, datasets) => getProfile(datum).timers
+                                        .filter((timer, timerIndex, allTimers) =>
+                                            timer.name.startsWith("Sh-await-callback") &&
+                                            timer.name.includes("wait --for=condition=Ready ksvc")
+
+                                        )
+                                        .filter((timer, timerIndex, allTimers) =>
+                                            timerIndex < allTimers.length - 3
+                                        )
+                                        .map((timer, index) => ({ ...timer, index }))}
+                                    title="Ready ksvc"
+                                    valueKey="millis"
+                                />
+                                {/* {reportSeries("Namespace", namespaceTimes, "millis", getDataName, data)} */}
+                                {/* {reportSeries("Service", serviceTimes, "millis", getDataName, data)} */}
                                 {reportSeries("Ready ksvc",
                                     (datum, datumIndex, datasets) => getProfile(datum).timers
                                         .filter((timer, timerIndex, allTimers) =>

@@ -19,14 +19,19 @@ const encode = (accessors)=>{
     return rtrn;
 }
 export const fetchSearch = (groupId="",search="",callBack=()=>{})=>()=>{
-    const q = qs.parse(search)
-    const names = (q.q && Array.isArray(q.q) ? q.q : [q.q]).filter(v => v) //removes undefined
+    const qa = qs.parse(search)
+    const {q=[],path="api/data",suffix=".json",token="",...rest} = qa;
+    const names = (q && Array.isArray(q) ? q : [q]).filter(v => v) //removes undefined
     const getIt = async () => {
         const ary = await Promise.all(
             names.map(name => {
                 const file = name.includes("=") ? name.substring(0,name.indexOf("=")) : name
                 const alias = name.includes("=") ? name.substring(name.indexOf("=")+1,name.length) : name
-                return axios.get(`/api/data/${groupId}/${file}.json`).then(response =>(
+                return axios.get(`/api/data/${groupId}/${file}.json`,{
+                    params: {
+                        token: token
+                    }
+                }).then(response =>(
                 {
                     ...response,
                     name : alias
@@ -84,7 +89,6 @@ export const fetchGroup = (groupId,accessors) =>
         .then(
             response => {
                 if(response.data && response.data.files){
-                    console.log("have ls",response.data.files)
                     return response.data.files.map(file=>file.fullPath)
                 }
             },

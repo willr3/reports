@@ -271,8 +271,7 @@ const dstatCharts = (all, path) => {
   )
 }
 function Specj() {
-  //const location = useLocation();
-  const location = {search:""}//useLocation();
+  const location = useLocation();
   const [data, setData] = useState([])
   useEffect(
     fetchSearch("specjEnterprise", location.search, setData)

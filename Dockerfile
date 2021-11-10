@@ -1,4 +1,4 @@
-FROM node:12-alpine AS BUILDER
+FROM node:16-alpine AS BUILDER
 
 # Create app directory
 WORKDIR /usr/src/app
@@ -8,14 +8,19 @@ WORKDIR /usr/src/app
 # where available (npm@5+)
 COPY package*.json ./
 
+COPY . .
+
 RUN npm install
-RUN npm install -g webpack
+
+RUN npm install webpack@4.44.2
 RUN npm install -g webpack-cli
+RUN npm install webpack-node-externals
 RUN npm install -g babel-polyfill
+
 # If you are building your code for production
 # RUN npm ci --only=production
 
-COPY . .
+
 
 RUN npm run build
 RUN PUBLIC_URL='/' webpack --config webpack.server.js

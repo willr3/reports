@@ -32,7 +32,7 @@
     "js-beautify": "^1.14.0",
     "jsonpath": "^1.1.1",
     "luxon": "^2.0.2",
-    "monaco-editor": "^0.20.0",
+    "monaco-editor": "^0.21.2",
     "multer": "^1.4.3",
     "prop-types": "^15.7.2",
     "raw.macro": "^0.3.1",

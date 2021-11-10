@@ -30,7 +30,7 @@ const groupReducer = (state = {}, action) =>{
 }
 
 const appReducers = combineReducers({
-    router: connectRouter(history),
+//    router: connectRouter(history),
     columns: columnReducer,
     groups: groupReducer,
 })

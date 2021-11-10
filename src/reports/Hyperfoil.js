@@ -49,8 +49,7 @@ for (var i = 0; i < colors[colorNames[0]].length; i++) {
 
 
 function Hyperfoil() {
-    //const location = useLocation();
-    const location = {search:""}//useLocation();
+    const location = useLocation();
     const [data, setData] = useState([])
     const getDataName = (v, i, a) => {
         return data[i].name

@@ -52,7 +52,7 @@ const accessors = {
         errorCount: '$.hf.info.errors.length',
         failureCount: '$.hf.failures.length',
         failures: '$.hf.failures',
-        runId: `$.qdup.run.state["mwperf-server01.perf.lab.eng.rdu2.redhat.com"].runId`,
+        runId: `$.hf.info.id`,
     },
     coldStart: {
         start: `$.qdup.run.timestamps.start`,
@@ -177,6 +177,8 @@ const accessors = {
     }
 };
 
+const isActiveFn = (props)=>{console.log("isActiveFn",props);return props.isActive ? "pf-m-current" : "not_active"}
+
 export default () => {
     console.log("Runs",Date.now())
     const { groupId = DEFAULT_GROUP } = useParams();
@@ -250,7 +252,7 @@ export default () => {
                 Cell: (arg) => {
                     const { cell: { value } } = arg
                     return (
-                        <NavLink exact={true} to={`/report/eventingHyperfoil?q=${value}`} activeClassName="pf-m-current">
+                        <NavLink end to={`/report/eventingHyperfoil?q=${value}`} className={isActiveFn}>
                             {value}
                         </NavLink>
                     )
@@ -287,7 +289,7 @@ export default () => {
                 Cell: (arg) => {
                     const { cell: { value } } = arg
                     return (
-                        <NavLink exact={true} to={`/report/hyperfoil?q=${value}`} activeClassName="pf-m-current">
+                        <NavLink end to={`/report/hyperfoil?q=${value}`} className={isActiveFn}>
                             {value}
                         </NavLink>
                     )
@@ -311,7 +313,7 @@ export default () => {
                 Cell: (arg) => {
                     const { cell: { value } } = arg
                     return (
-                        <NavLink exact={true} to={`/report/namespace?q=${value}`} activeClassName="pf-m-current">
+                        <NavLink end to={`/report/namespace?q=${value}`} className={isActiveFn}>
                             {value}
                         </NavLink>
                     )
@@ -534,36 +536,37 @@ export default () => {
             onNavToggle={() => { setShowNav(!showNav) }}
         />
     )
+    
     const Navigation = (
         <Nav aria-label="Nav" theme="dark">
             <NavList>
                 <NavGroup title="EnterpriseApplicationServer">
                     <NavItem itemId={0} isActive={false}>
-                        <NavLink exact={true} to="/specjEnterprise" activeClassName="pf-m-current">
+                        <NavLink end to="/specjEnterprise" className={isActiveFn}>
                             specjEnterprise2010
                         </NavLink>
                     </NavItem>
                     <NavItem itemId={0} isActive={false}>
-                        <NavLink exact={true} to="/webProfile" activeClassName="pf-m-current">
+                        <NavLink end to="/webProfile" className={isActiveFn}>
                             webProfile
                         </NavLink>
                     </NavItem>
                 </NavGroup>
                 <NavGroup title="Openshift Serverless">
                     <NavItem itemId={0} isActive={false}>
-                        <NavLink exact={true} to="/coldStart" activeClassName="pf-m-current">
+                        <NavLink end to="/coldStart" className={isActiveFn}>
                             cold start
                         </NavLink>
                     </NavItem>
                     <NavItem itemId={0} isActive={false}>
-                        <NavLink exact={true} to="/createNamespace" activeClassName="pf-m-current">
+                        <NavLink end to="/createNamespace" className={isActiveFn}>
                             create namespaces
                         </NavLink>
                     </NavItem>
                 </NavGroup>
                 <NavGroup title="Openshift Eventing">
                     <NavItem itemId={0} isActive={false}>
-                        <NavLink exact={true} to="/eventingHyperfoil" activeClassName="pf-m-current">
+                        <NavLink end to="/eventingHyperfoil" className={isActiveFn}>
                             hyperfoil testcase
                         </NavLink>
                     </NavItem>
@@ -571,12 +574,12 @@ export default () => {
 
                 <NavGroup title="Testing">
                     <NavItem itemId={0} isActive={false}>
-                        <NavLink exact={true} to="/hyperfoil" className={({isActive})=>isActive ? "pf-m-current" : "not_active"}>
+                        <NavLink end to="/hyperfoil" className={isActiveFn}>
                             hyperfoil
                         </NavLink>
                     </NavItem>
                     <NavItem itemId={0} isActive={false}>
-                        <NavLink exact={true} to="/techempower" activeClassName="pf-m-current">
+                        <NavLink end to="/techempower" className={isActiveFn}>
                             techempower
                         </NavLink>
                     </NavItem>

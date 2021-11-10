@@ -1,6 +1,6 @@
-require('babel-register')({
-    presets: ['es2015', 'react']
-});
+// require('babel-register')({
+//     presets: ['es2015', 'react']
+// });
 
 const express = require('express')
 const fs = require('fs').promises;

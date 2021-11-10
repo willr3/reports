@@ -550,8 +550,7 @@ const reportSeries = (name, getSeries, valueKey, getName = (v) => v.name, data) 
 
 const getDataName = (v) => v.name;
 function Namespace() {
-    //const location = useLocation();
-    const location = {search:""}//useLocation();
+    const location = useLocation();    
     const [data, setData] = useState([])
     useEffect(
         fetchSearch("createNamespace", location.search, setData)

@@ -357,8 +357,7 @@ const xanCharts = (all, path, unit = "seconds") => {
 
 
 function Web() {
-  //const location = useLocation();
-  const location = {search:""}//useLocation();
+  const location = useLocation();
   const [data, setData] = useState([])
   useEffect(
     fetchSearch("webProfile", location.search, setData)

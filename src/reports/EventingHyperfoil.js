@@ -68,8 +68,7 @@ const selectors = [
 ]
 
 function EventingHyperfoil(){
-    //const location = useLocation();
-    const location = {search:""}//useLocation();
+    const location = useLocation();
     const [data, setData] = useState([])
     const dataNames = useMemo(()=>data.map(getDataName),[data])
 

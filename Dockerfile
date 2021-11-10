@@ -12,7 +12,7 @@ COPY . .
 
 RUN npm install
 
-RUN npm install webpack@4.44.2
+RUN npm install -g webpack@4.44.2
 RUN npm install -g webpack-cli
 RUN npm install webpack-node-externals
 RUN npm install -g babel-polyfill
@@ -30,7 +30,7 @@ RUN PUBLIC_URL='/' webpack --config webpack.server.js
 
 #RUN npm prune --production
 
-FROM node:12-alpine
+FROM node:16-alpine
 
 # Create app directory
 WORKDIR /usr/src/app

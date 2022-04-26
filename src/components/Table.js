@@ -4,23 +4,8 @@ import { useTable, useSortBy, useRowSelect, useExpanded } from 'react-table'
 import clsx from 'clsx';
 import {
   Card,
-  CardHead,
   CardHeader,
-  CardHeadMain,
-  CardHeadActions,
-  Toolbar,
-  ToolbarGroup,
-  ToolbarItem,
-  CardBody,
-  Nav,
-  NavGroup,
-  NavItem,
-  NavList,
-  Page,
-  PageHeader,
-  PageSection,
-  PageSidebar,
-  Title
+  CardBody
 } from '@patternfly/react-core';
 import {
   CaretDownIcon,

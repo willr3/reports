@@ -1,39 +1,26 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import axios from 'axios';
 import jsonpath from 'jsonpath';
-import { DateTime, Duration } from 'luxon'
-import * as qs from 'query-string';
-import { useHistory, useParams, useLocation } from "react-router"
+import { Duration } from 'luxon'
+import { useLocation } from "react-router"
 import {
     Card,
 
     Nav,
     NavGroup,
-    NavList,
     NavItem,
     Page, PageHeader, PageSection, PageSectionVariants, PageSidebar,
-    SimpleList,
-    SimpleListItem,
-    SimpleListGroup,
     Stack,
     StackItem,
     Title,
     Toolbar,
 } from '@patternfly/react-core';
 import {
-    Area,
     Bar,
-    BarChart,
-    Label,
-    Legend,
     ComposedChart,
-    Line,
     CartesianGrid,
     XAxis,
     YAxis,
     Tooltip,
-    ReferenceArea,
-    ReferenceLine,
     ResponsiveContainer,
 } from 'recharts';
 import { Helmet } from "react-helmet";
@@ -300,8 +287,8 @@ function TechEmpower() {
                                             type: 'rect',
                                             value: datum.name
 
-                                        }))} */}
-                                        />
+                                        }))} 
+                                        />*/}
                                         <XAxis
                                             allowDataOverflow={true}
                                             type="category"

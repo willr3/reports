@@ -1,23 +1,15 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import ReactDOM from "react-dom";
-import {
-    Button
-} from '@patternfly/react-core';
-import {
-    ThIcon,
-    CaretDownIcon,
-    CopyIcon,
-    DownloadIcon,
-    EditIcon
-} from '@patternfly/react-icons';
-import { chartColors } from '../theme';
-
-import htmlToImage from 'html-to-image';
-import html2canvas from 'html2canvas';
+import React, {useState} from 'react';
+import CaptureContainer from './CaptureContainer';
 
 import './ChartContainer.css';
-
-import CaptureContainer from './CaptureContainer';
+import {
+    Button,
+    //Spinner,
+    Tooltip,
+} from '@patternfly/react-core';
+import {
+    PencilAltIcon
+} from '@patternfly/react-icons';
 
 const LegendEntry = ({ name, color,...spread }) => (
     <div className="legend-entry" {...spread}>
@@ -32,18 +24,27 @@ export default ({
     rightLabel = undefined,
     domainLabel = undefined,
     labels = {},
+    editor = undefined,
     onDoubleClick = (e)=>{},
     style = { backgroundColor: '#ffffff' },
     children
 }) => {
     const fixedStyle = { }
+    const [editing,setEditing] = useState(false);
     return (
         <CaptureContainer name={title || "chart"}>
             <div className="panel-container" style={fixedStyle}>
 
                 <div className="panel-header" style={fixedStyle}>
                     <div style={{  }}>
-                        <h3>{title}</h3>
+                            <span style={{float:'left'}}>
+                                {title}
+                            </span>
+                            {editor ? <span className="panel-edit">
+                                    <Button variant="plain" aria-label="Action" onClick={(e)=>{setEditing(!editing)}}>
+                                        <PencilAltIcon />
+                                    </Button>
+                            </span> : null }
                         {/* <CaretDownIcon/> */}
                     </div>
                 </div>
@@ -58,7 +59,7 @@ export default ({
                             </div>
                         ) : null}
                         <div className="chart-content" style={{ flexGrow: 1 }} onDoubleClick={onDoubleClick}>
-                            {children}
+                            {editing ? editor : children}
                         </div>
                         {rightLabel ? (
                             <div className="right-container" style={fixedStyle}>

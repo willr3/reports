@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
-    Area,
+    // Area,
     Bar,
     Label,
     Legend,
@@ -11,7 +11,7 @@ import {
     YAxis,
     Tooltip,
     ReferenceArea,
-    ReferenceLine,
+    // ReferenceLine,
     ResponsiveContainer,
 } from 'recharts';
 //import { AutoSizer } from 'react-virtualized';
@@ -130,6 +130,152 @@ export const taylor = (data, selector, unit, getName = (v, i) => i, config = { d
             </ComposedChart>
         </ResponsiveContainer>
     )
+}
+export const ZoomChart = (props)=>{
+    const {
+        data=[],
+        title='chart',
+        leftLabel="",
+        rightLabel=" ",
+        domainLabel="",
+        domain=['auto','auto'],
+        domainKey="__domainValue",
+        setDomain=false,
+        formatter=(v)=>v,
+        tickFormatter=(v)=>v,
+        tooltipFomratter=(v)=>v,
+        labelFormatter=(v)=>v,
+        getName = (d)=>d.name,
+        labels={},
+        height=360,
+        children,
+        ...rest
+    } = props;
+    const zoom = useZoom();
+    const fullDomain = useMemo(()=>{
+        if(data.length == 0){
+            return ['auto','auto']
+        }else{
+                return [data[0][domainKey],data[data.length-1][domainKey]]
+        }
+    },[data])
+    if(!data || data.length===0){
+        return <>no data for {title}</>
+    }else{
+        return (
+            <div style={{ pageBreakInside: 'avoid' }}>
+                <ChartContainer
+                    title={title}
+                    leftLabel={leftLabel}
+                    rightLabel={rightLabel}
+                    domainLabel={domainLabel}
+                    labels={labels}
+                    onDoubleClick={ e=> {
+                        if(setDomain && fullDomain){
+                            setDomain(fullDomain)
+                        }
+                    }}
+                >
+                    <ResponsiveContainer width="100%" height={height}>
+                        <ComposedChart
+                            data={data}
+                            style={{ userSelect: 'none' }}
+                            onMouseDown={e => {
+                                if(setDomain && e) {
+                                    zoom.setLeft(e.activeLabel)
+                                    zoom.setRight(e.activeLabel)
+
+
+                                    if (e.stopPropagation) e.stopPropagation();
+                                    if (e.preventDefault) e.preventDefault();
+                                    e.cancelBubble = true;
+                                    e.returnValue = false;
+                                    return false;
+                                }
+                                return false;
+                            }}
+                            onMouseMove={e => {
+                                if (setDomain && zoom.left){
+                                    const r = e.activeLabel ?
+                                        e.activeLabel :
+                                        zoom.right > zoom.left ?
+                                            domain[1] :
+                                            domain[0]
+                                    zoom.setRight(r)
+                                }
+                                return false;
+                            }}
+                            onMouseUp={e => {
+                                if (setDomain && zoom.left && zoom.right && zoom.left !== zoom.right) {
+                                    let newDomain = [zoom.left, zoom.right];
+                                    if (zoom.left > zoom.right) {
+                                        newDomain = [zoom.right, zoom.left];
+                                    }
+                                    setDomain(newDomain);
+                                }
+                                if(setDomain){
+                                    zoom.setLeft(false);
+                                    zoom.setRight(false)
+                                }                                
+                            }}
+                        >
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <Tooltip
+                                formatter={tooltipFomratter}
+                                labelFormatter={labelFormatter}
+                            />
+                            <XAxis
+                                allowDataOverflow={true}
+                                type="number"
+                                scale="linear"
+                                dataKey="__domainValue"
+                                domain={domain}
+                                //domain={['dataMin', 'auto']}
+                                //domain={[11700,17160]}
+                                tickFormatter={tickFormatter}
+                                tick={(props)=>{
+                                    const {x,y,width,height,stroke,fill,payload,...rest} = props;
+                                    if ( (!Number.isNaN(domain[1]) && payload.value > domain[1]) || (!Number.isNaN(domain[0]) && payload.value < domain[0]) ){
+                                            return (
+                                                <></>
+                                            )        
+                                    }else{
+                                        return (
+                                            <text x={x} y={y} width={width} height={height} textAnchor="middle" stroke={stroke} fill={fill}>
+                                                <tspan x={x} dy="0.71em">{tickFormatter(payload.value)}</tspan>
+                                            </text>
+                                        )
+                                    }
+                                }}
+                            ></XAxis>
+                            <YAxis
+                                yAxisId={0}
+                                allowDataOverflow={true}
+                                domain={[0, 'auto']}
+                                tickFormatter={formatter}
+                            >
+                                {/* <Label value="seconds" position="insideLeft" angle={-90} offset={0} textAnchor='middle' style={{ textAnchor: 'middle' }} /> */}
+                            </YAxis>
+                            { rightLabel ? <YAxis
+                                yAxisId={1}
+                                orientation="right"
+                                allowDataOverflow={true}
+                                domain={[0,'auto']}
+                            ></YAxis> : null}
+                            {children}
+                            {/* <ReferenceArea yAxisId={0} x1={11700} x2={17160} strokeOpacity={0.3} /> */}
+                            {setDomain && zoom.left && zoom.right ?
+                                (<ReferenceArea yAxisId={0} x1={zoom.left} x2={zoom.right} strokeOpacity={0.3} />)
+                                : undefined
+                            }
+
+                        </ComposedChart>
+                    </ResponsiveContainer>
+
+                </ChartContainer>
+            </div>
+        )
+    }
 }
 export const CDF = ({
     title="cdf",

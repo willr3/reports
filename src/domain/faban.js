@@ -1,15 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import {
-    Area,
     Label,
-    Legend,
     ComposedChart,
     Line,
     CartesianGrid,
     XAxis,
     YAxis,
     Tooltip,
-    ReferenceArea,
     ReferenceLine,
     ResponsiveContainer,
 } from 'recharts';
@@ -19,7 +16,6 @@ import jsonpath from 'jsonpath';
 import { DateTime } from 'luxon'
 
 import theme, {
-    chartColors,
     chartColorNames
   } from '../theme';
   

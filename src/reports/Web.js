@@ -1,20 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import jsonpath from 'jsonpath';
-import { DateTime } from 'luxon'
-import * as qs from 'query-string';
-import { useHistory, useParams, useLocation } from "react-router"
+import { useLocation } from "react-router"
 import {
-  Area,
   Label,
-  Legend,
   ComposedChart,
   Line,
   CartesianGrid,
   XAxis,
   YAxis,
   Tooltip,
-  ReferenceArea,
   ReferenceLine,
   ResponsiveContainer,
 } from 'recharts';
@@ -27,29 +21,16 @@ import '../App.css';
 import { fetchSearch } from '../redux/actions';
 import ChartContainer from '../components/ChartContainer';
 import theme, {
-  chartColors,
   chartColorNames
 } from '../theme';
 import {
   fabanDuration,
-  xanDistributionChart,
-  xanTimeChart,
 } from '../domain/faban';
 import {
   joinGc,
   gcCharts 
 } from '../domain/gc';
 
-const useZoom = () => {
-  const [left, setLeft] = useState(false)
-  const [right, setRight] = useState(false)
-  return {
-    left,
-    right,
-    setLeft,
-    setRight,
-  };
-}
 
 const percentDiff = (a, b, path) => {
   const v1 = (jsonpath.query(a, path) || [NaN])[0]
@@ -58,13 +39,9 @@ const percentDiff = (a, b, path) => {
   return Number.isNaN(rtrn) ? "" : Number(rtrn).toFixed(3) + "%";
 }
 
-const nanoToMs = (v) => Number(v / 1000000.0).toFixed(0)
-const tsToHHmmss = (v) => DateTime.fromMillis(v).toFormat("HH:mm:ss")
-
-
 const joinPmi = (data, path, selectors) => {
   const rtrn = {}
-  data.forEach((datum, datumIndex) => {
+  data.forEach((datum) => {
     const name = datum.name
     const minTs = (jsonpath.query(datum.data, `$.qdup.latches.FABAN_RAMP_UP`) || [0])[0]
     const maxTs = (jsonpath.query(datum.data, `$.qdup.latches.FABAN_RAMP_DOWN`) || [0])[0] + 60 * 1000
@@ -166,7 +143,7 @@ const pmiChart = (all, path, selectors, unit = "threads") => {
 }
 const joinDstat = (data, path) => {
   const rtrn = {}
-  data.forEach((datum, datumIndex) => {
+  data.forEach((datum) => {
     const name = datum.name;
     const minTs = (jsonpath.query(datum.data, `$.qdup.latches.FABAN_RAMP_UP`) || [0])[0]
     const maxTs = (jsonpath.query(datum.data, `$.qdup.latches.FABAN_RAMP_DOWN`) || [0])[0] + 60 * 1000
@@ -263,7 +240,7 @@ const joinXan = (data, path) => {
   const headers = {}
   data.forEach((v, i) => {
     const xan = jsonpath.query(v.data, path)[0];
-    const name = xan.section
+    // const name = xan.section
     const header = xan.header;
     const time = header.shift();
     xan.data.forEach(entry => {

@@ -1,20 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import { Helmet } from "react-helmet";
 import jsonpath from 'jsonpath';
 import { DateTime } from 'luxon'
-import * as qs from 'query-string';
-import { useHistory, useParams, useLocation } from "react-router"
+import { useLocation } from "react-router"
 import {
-  Area,
   Label,
-  Legend,
   ComposedChart,
   Line,
   CartesianGrid,
   XAxis,
   YAxis,
   Tooltip,
-  ReferenceArea,
   ReferenceLine,
   ResponsiveContainer,
 } from 'recharts';
@@ -23,7 +19,6 @@ import '@patternfly/patternfly/patternfly.css'; //have to use this import to cus
 import '../App.css';
 
 import theme, {
-  chartColors,
   chartColorNames
 } from '../theme';
 
@@ -273,6 +268,7 @@ const dstatCharts = (all, path) => {
 function Specj() {
   const location = useLocation();
   const [data, setData] = useState([])
+  console.log("data",data)
   useEffect(
     fetchSearch("specjEnterprise", location.search, setData)
     , [location.search, setData])
@@ -307,7 +303,7 @@ function Specj() {
       <tr><th>steadyState</th>{data.map((datum, datumIndex) => (<td key={datumIndex}>{jsonpath.query(datum.data, `$.faban.run.SPECjEnterprise['fa:runConfig']['fa:runControl']['fa:steadyState']['text()']`)}</td>))}</tr>
       <tr><th>rampDown</th>{data.map((datum, datumIndex) => (<td key={datumIndex}>{jsonpath.query(datum.data, `$.faban.run.SPECjEnterprise['fa:runConfig']['fa:runControl']['fa:rampDown']['text()']`)}</td>))}</tr>
       <tr><th>max heap</th>{data.map((datum, datumIndex) => (<td key={datumIndex}>{
-        /-Xmx([^ $]+)/g.exec((jsonpath.query(datum.data, `$.qdup.state['mwperf-server03.perf.lab.eng.rdu2.redhat.com']..JAVA_OPTS`) || [""])[0])[1]
+        /-Xmx([^ $]+)/g.exec((jsonpath.query(datum.data, `$.qdup.state['mwperf-server03.perf.lab.eng.rdu2.redhat.com']..JAVA_OPTS`) || [""])[0]||[""])[1]
       }</td>))}</tr>
       <tr><th>large pages</th>{data.map((datum, datumIndex) => (<td key={datumIndex}>{(jsonpath.query(datum.data, `$.qdup.state['mwperf-server03.perf.lab.eng.rdu2.redhat.com']..JAVA_OPTS`) || [""])[0].includes("LargePages") ? '✔' : '✕'}</td>))}</tr>
       <tr><th>jfr</th>{data.map((datum, datumIndex) => (<td key={datumIndex}>{(jsonpath.query(datum.data, `$.qdup.state['mwperf-server03.perf.lab.eng.rdu2.redhat.com']..JAVA_OPTS`) || [""])[0].includes("StartFlightRecording") ? '✔' : '✕'}</td>))}</tr>
@@ -503,7 +499,9 @@ function Specj() {
     <div className="pf-c-content">
       <div className="pf-c-card">
         <div className="">
-
+          <Helmet>
+            <title>Spec {data.map(getId).join(" ")}</title>
+          </Helmet>
         </div>
         <div className="pf-c-card__body">
           <h1>SPECjEnterprise2010</h1>

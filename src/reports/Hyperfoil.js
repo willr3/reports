@@ -1,31 +1,22 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import axios from 'axios';
+import React, { useState, useEffect } from 'react';
 import jsonpath from 'jsonpath';
 import { DateTime } from 'luxon'
-import * as qs from 'query-string';
-import { useHistory, useParams, useLocation } from "react-router"
+import { useLocation } from "react-router"
 import {
     Area,
-    Bar,
-    Label,
-    Legend,
     ComposedChart,
     Line,
     CartesianGrid,
     XAxis,
     YAxis,
     Tooltip,
-    ReferenceArea,
-    ReferenceLine,
     ResponsiveContainer,
 } from 'recharts';
 import { Helmet } from "react-helmet";
 //import { AutoSizer } from 'react-virtualized';
 import '@patternfly/patternfly/patternfly.css'; //have to use this import to customize scss-variables.scss
 import '../App.css';
-import reducer, { apply } from '../domain/reducer';
-import { getCdf, getBuckets, getStats } from '../domain/stats';
-import * as Charts from '../domain/charts';
+import reducer from '../domain/reducer';
 import { fetchSearch } from '../redux/actions';
 
 import ChartContainer from '../components/ChartContainer';

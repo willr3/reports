@@ -1,25 +1,14 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import axios from 'axios';
+import React, { useState, useEffect } from 'react';
 import jsonpath from 'jsonpath';
-import { DateTime, Duration } from 'luxon'
-import * as qs from 'query-string';
-import { useHistory, useParams, useLocation } from "react-router"
+import { Duration } from 'luxon'
+import { useLocation } from "react-router"
 import {
-    Area,
-    Bar,
-    Brush,
-    Label,
-    Legend,
     ComposedChart,
     Line,
     CartesianGrid,
     XAxis,
     YAxis,
     Tooltip,
-    PieChart,
-    Pie,
-    ReferenceArea,
-    ReferenceLine,
     ResponsiveContainer,
 } from 'recharts';
 import { Helmet } from "react-helmet";
@@ -27,13 +16,12 @@ import { Helmet } from "react-helmet";
 import '@patternfly/patternfly/patternfly.css'; //have to use this import to customize scss-variables.scss
 import '../App.css';
 import reducer, { apply } from '../domain/reducer';
-import { getCdf, getBuckets, getStats } from '../domain/stats';
+import { getStats } from '../domain/stats';
 import * as Charts from '../domain/charts';
 import { fetchSearch } from '../redux/actions';
 
 import ChartContainer from '../components/ChartContainer';
 import { chartColors } from '../theme';
-import CaptureContainer from '../components/CaptureContainer';
 import {Table} from '../domain/charts';
 import {PrometheusChart} from '../domain/prometheus';
 
@@ -85,7 +73,16 @@ const createTable = (mergedData, names = [], header = "", config = { precision: 
         </table>
     )
 }
-const getProfile = (datum) => datum.data.qdup.run.profiles["scalelab-setup@f03-h01-000-r620"] ? datum.data.qdup.run.profiles["scalelab-setup@f03-h01-000-r620"] : datum.data.qdup.run.profiles["serverless-setup@mwperf-server01."]
+const getProfile = (datum) => {
+    const keys = Object.keys(datum.data.qdup.run.profiles)
+    let key = keys.find(k=>k.startsWith("create-namespaces-with-signal"))
+    if(!key){
+        key = keys.find(k=>k.startsWith("scalelab-setup@f03-h01-000-r620"))
+    }else if (!key){
+        key = keys.find(k=>k.k.startsWith("serverless-setup@mwperf-server01."))
+    }
+    return datum.data.qdup.run.profiles[key]   
+}
 const namespaceTimes = (datum, dataIndex, datasets) => getProfile(datum).timers
     .filter(timer =>
         timer.name.startsWith("Sh-await-callback") &&
@@ -552,6 +549,7 @@ const getDataName = (v) => v.name;
 function Namespace() {
     const location = useLocation();    
     const [data, setData] = useState([])
+    console.log("data",data)
     useEffect(
         fetchSearch("createNamespace", location.search, setData)
         , [location.search, setData])
@@ -752,24 +750,37 @@ function Namespace() {
                                 <ReportSeries
                                     data={data}
                                     getName={getDataName}
-                                    getSeries={(datum,datumIndex, datasets)=> getProfile(datum).timers
+                                    getSeries={(datum,datumIndex, datasets)=> {
+                                        
+                                        let rtrn = getProfile(datum).timers
                                         .filter(timer=>
                                             timer.name.startsWith("Sh-await-callback") &&
                                             timer.name.includes("kind: Namespace")
                                         )
-                                        .map((timer,index)=> ({ ...timer, index }))}
+                                        .map((timer,index)=> ({ ...timer, index }))
+                                        console.log("Namespaces",rtrn)
+                                        return rtrn;
+                                    }
+                                    
+                                    }
                                     title="Namespace"
                                     valueKey="millis"
                                 />
                                 <ReportSeries
                                     data={data}
                                     getName={getDataName}
-                                    getSeries={(datum,datumIndex, datasets)=>getProfile(datum).timers
+                                    getSeries={(datum,datumIndex, datasets)=>{
+                                        console.log("service.profile",getProfile(datum));
+                                        let rtrn = getProfile(datum).timers
                                         .filter(timer =>
                                             timer.name.startsWith("Sh-await-callback") &&
                                             timer.name.includes("serving.knative.dev/v1")
                                         )
-                                        .map((timer, index) => ({ ...timer, index }))}
+                                        .map((timer, index) => ({ ...timer, index }))
+                                        console.log("Services",rtrn)
+                                        return rtrn;
+                                    }
+                                    }
                                     title="Service"
                                     valueKey="millis"
                                 />

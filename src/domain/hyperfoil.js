@@ -1,8 +1,6 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import {
     Area,
-    Label,
-    Legend,
     ComposedChart,
     Line,
     CartesianGrid,
@@ -10,14 +8,12 @@ import {
     YAxis,
     Tooltip,
     ReferenceArea,
-    ReferenceLine,
     ResponsiveContainer,
 } from 'recharts';
 import jsonpath from 'jsonpath';
-import { DateTime, Duration } from 'luxon'
+import { Duration } from 'luxon'
 
 import theme, {
-    chartColors,
     chartColorNames
 } from '../theme';
 
@@ -25,8 +21,6 @@ import reducer, { apply } from '../domain/reducer';
 import { useZoom } from './charts';
 
 import ChartContainer from '../components/ChartContainer';
-import OverloadTooltip from '../components/OverloadTooltip';
-  
 
 const defaultGetDataNameFactory = (data)=> (v, i, a) => {
     return data[i].name
@@ -63,6 +57,110 @@ export const hyperfoilDetailsSelectors = [
         axis: 'right'
     }
 ]
+
+const OverloadTooltip = ({extra=[],data=[],dataNames=[],colors={},active,payload,label,...props})=>{
+    if (!payload || !active || payload.length == 0) {
+        return <></>
+    }
+
+    const payloadUnits = payload.reduce((rtrn,entry,entryIdx)=>{
+        const name = entry.dataKey.substring(entry.dataKey.indexOf('-'))
+        rtrn[name]=entry.unit
+        return rtrn
+    },{})
+    if(active && payload[0]){
+        const domainValue = payload[0].payload.__domainValue
+        const idx = iterativeFunction(data,domainValue)
+        const payloadDataKeys = payload.map(v=>v.dataKey.substring(v.dataKey.indexOf('-')))
+        const missingDataNames = dataNames.filter(v=>!payload[0].dataKey.startsWith(v))
+        
+
+        const also = missingDataNames.reduce((rtrn,name)=>{
+            payloadDataKeys.forEach((dataKey,dataKeyIdx)=>{
+                let prevIdx = idx;
+                let nextIdx = idx;
+                while(data[prevIdx] && !data[prevIdx].hasOwnProperty(name+dataKey) && prevIdx>=0){
+                    prevIdx--;
+                }
+                while(data[nextIdx] && !data[nextIdx].hasOwnProperty(name+dataKey) && nextIdx<data.length){
+                    nextIdx++;
+                }
+                if(prevIdx<0){
+                    if(nextIdx < data.length){
+
+                    }
+                }else if (nextIdx == data.length){
+
+                }else{
+                    const prevDomain = data[prevIdx].__domainValue;
+                    const prevValue = data[prevIdx][name+dataKey]
+                    const nextDomain = data[nextIdx].__domainValue;
+                    const nextValue = data[nextIdx][name+dataKey]
+
+                    const slope = (nextValue-prevValue)/(nextDomain-prevDomain)
+                    const estimate = prevValue+slope*(domainValue-prevDomain)
+                    const section = dataKey.substring(dataKey.lastIndexOf('_')+1)
+                    const payloadNewName = name+"-"+section;
+                    const color = colors[name+dataKey]
+                    rtrn[name+dataKey]=estimate
+                    payload.push({
+                        color: color,
+                        stroke: color,
+                        cursor: "pointer",
+                        dataKey: name+dataKey,
+                        fillOpactiy: 0.6,
+                        name: payloadNewName,
+                        value: estimate,
+                        unit: payloadUnits[dataKey],
+                        estimated: true,
+                    })
+                    }
+            })
+            return rtrn;
+        },{})
+
+        extra.forEach(toAdd=>{
+            if(typeof toAdd === "function"){
+                payload.push(toAdd(payload[0].payload))
+            }
+        })
+    }
+    if(active && payload && payload.length){
+        payload.sort((a,b)=>a.name.localeCompare(b.name))
+        return (
+            <div style={{backgroundColor: 'white', margin: '0px', padding: '10px', border: '1px solid rgb(204, 204, 204)', whiteSpace: 'nowrap'}}>
+                <p style={{margin: '0px'}}>{props.labelFormatter(label)}</p>
+                <ul style={{padding: '0px', margin: '0px'}}>
+                {payload.map((entry,entryIdx)=>(
+                    <li style={{display: 'block', paddingTop: '4px', paddingBottom: '4px', color: entry.color}} key={entryIdx}>{entry.name} : {entry.estimated ? "~":""}{entry.unit==="ns" ? Number(entry.value/1000000.0).toFixed(3) : entry.value}{entry.unit==="ns" ? "ms":entry.unit}</li>))}
+                </ul>
+            </div>
+        )
+    }else{
+        return null
+    }
+}
+
+const iterativeFunction = function (arr, x) {
+  
+    let start=0, end=arr.length-1;
+         
+    // Iterate while start not meets end
+    while (start<=end){
+ 
+        // Find the mid index
+        let mid=Math.floor((start + end)/2);
+        // If element is present at mid, return True
+        if (arr[mid].__domainValue===x) return mid;
+ 
+        // Else look in left or right half accordingly
+        else if (arr[mid].__domainValue < x)
+             start = mid + 1;
+        else
+             end = mid - 1;
+    }
+    return false;
+}
 
 export const HyperfoilCharts = ({
     data=[],
@@ -156,7 +254,6 @@ export const HyperfoilCharts = ({
             if(fullDomain[0] != domain[0] || fullDomain[1] != domain[1]){
                 setDomain(fullDomain)
             }
-            //setDomain(fullDomain)
         },[fullDomain,setDomain]
     )
 

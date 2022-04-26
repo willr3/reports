@@ -7,6 +7,7 @@ const fs = require('fs').promises;
 const fsOld = require('fs')
 const Path = require('path')
 const http = require('http')
+const https = require('https')
 const bodyParser = require('body-parser')
 const multer = require('multer') // v1.0.5
 const WebSocket = require('ws')
@@ -16,6 +17,8 @@ var zlib = require('zlib');
 const { promisify } = require("util");
 
 const jsonpath = require('jsonpath');
+
+const axios = require('axios');
 
 var DateTime = require('luxon').DateTime;
 
@@ -97,6 +100,29 @@ app.use(bodyParser.urlencoded({ extended: true, limit: '50mb' }))
 app.use(bodyParser.json({ limit: '50mb' }))
 app.use(bodyParser.urlencoded({ extended: true })) // for parsing application/x-www-form-urlencoded
 
+
+const axiosInstance = axios.create({
+    httpsAgent: new https.Agent({  
+        rejectUnauthorized: false
+    })
+})
+
+app.get("/api/horreum/run/:runId", async (req, res) => {
+    let { runId = "" } = req.params
+    let { token = "" } = req.query
+    try{
+        const data = await axiosInstance.get(`https://horreum.usersys.redhat.com:8443/api/run/${runId}/data`,
+        {
+            params: req.query
+        })
+        res.send(data.data)
+    } catch (wtf) {
+        console.error("wtf", wtf);
+        res.status(400).json({
+            error: JSON.stringify(wtf)
+        })
+    }
+})
 app.post("/api/map", async (req, res) => {
     try {
         let { accessors, files } = req.body;
@@ -259,12 +285,12 @@ app.use("/api/data",
     }
 );
 //https://medium.com/swlh/how-to-use-useeffect-on-server-side-654932c51b13
-app.use("/",express.static(__dirname));//serve the most recent npm run build
+app.use("/",express.static(Path.resolve(__dirname, '../build/')));//serve the most recent npm run build
 
 app.get('/*', (req, res) => { //redirect urls to index.html for initial load of SPA paths
     console.log("/*",req.url)
     if(!req.url.startsWith("/api")){
-        res.sendFile(Path.resolve(__dirname, './index.html'));
+        res.sendFile(Path.resolve(__dirname, '../build/index.html'));
     }
     
 })

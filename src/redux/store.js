@@ -1,12 +1,7 @@
-import React, { useState, useMemo } from 'react';
-import {createBrowserHistory, createHashHistory} from 'history'
-import { createStore, combineReducers, compose, applyMiddleware, configureStore } from 'redux';
-import {connectRouter} from 'connected-react-router'
-import { routerMiddleware } from 'connected-react-router'
+import {createBrowserHistory} from 'history'
+import { createStore, combineReducers, compose, applyMiddleware } from 'redux';
 
 import thunk from 'redux-thunk';
-import * as qs from 'query-string';
-
 
 import * as ActionTypes from './actionTypes';
 
@@ -23,7 +18,8 @@ const groupReducer = (state = {}, action) =>{
     switch(action.type){
         case ActionTypes.GROUP_LOADED: {
             //TODO use immutable
-            state[action.groupId] = action.data;            
+            state[action.groupId] = action.data;
+            state = {...state}
         }break;
     }
     return state

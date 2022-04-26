@@ -1,27 +1,19 @@
-import React, { useState, useRef, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 
-import { useHistory, useParams, useLocation } from "react-router"
-import { useDispatch, useSelector, useStore } from 'react-redux'
+import { useParams } from "react-router"
+import { useDispatch, useSelector } from 'react-redux'
 import * as qs from 'query-string';
 import {
     Button,
-    Card,
-    CardHead,
-    CardHeadMain,
-    CardHeadActions,
-    CardBody,
     Nav,
     NavGroup,
     NavItem,
-    NavItemSeparator,
     NavList,
-    NavVariants,
     Page,
     PageHeader,
     PageHeaderTools,
     PageSection,
     PageSidebar,
-    Title,
     Toolbar,
     ToolbarGroup,
     ToolbarItem,
@@ -38,7 +30,7 @@ import { DateTime } from 'luxon';
 
 const DEFAULT_GROUP = ""
 
-// runs on the datase to create the summary json for each entry
+// runs on the dataset to create the summary json for each entry
 const accessors = {
     eventingHyperfoil: {
         start: `$.qdup.run.timestamps.start`,
@@ -106,6 +98,30 @@ const accessors = {
         runtimeName: `$.qdup.state["mwperf-server03.perf.lab.eng.rdu2.redhat.com"].RUNTIME_NAME`,
         stop: `$.qdup.timestamps.start`,
     },
+    omb: {
+        start: `$.qdup.run.timestamps.start`,
+        stop: `$.qdup.run.timestamps.stop`,
+        duration: `(json)=>{
+            const start = jsonpath.value(json,"$.qdup.run.timestamps.start")
+            const stop = jsonpath.value(json,"$.qdup.run.timestamps.stop")
+            const rtrn = DateTime.fromMillis(stop).diff(DateTime.fromMillis(start)).toFormat("hh:mm:ss")
+            return rtrn;
+        }`,
+        driver: "$.qdup.run.state.driver",
+        workload: "$.qdup.run.state.workload"
+    },
+    serverlessCapacity: {
+        start: `$.qdup.run.timestamps.start`,
+        stop: `$.qdup.run.timestamps.stop`,
+        duration: `(json)=>{
+            const start = jsonpath.value(json,"$.qdup.run.timestamps.start")
+            const stop = jsonpath.value(json,"$.qdup.run.timestamps.stop")
+            const rtrn = DateTime.fromMillis(stop).diff(DateTime.fromMillis(start)).toFormat("hh:mm:ss")
+            return rtrn;
+        }`,
+        pods: "$.qdup.run.state.pod.time.length",
+        ksvcs: "$.qdup.run.state.ksvc.time.length"
+    },
     createNamespace: {
         start: `$.qdup.run.timestamps.start`,
         stop: `$.qdup.run.timestamps.stop`,
@@ -131,9 +147,16 @@ const accessors = {
             return cap ? cap : low
         }`,
         lastServiceStop: `(json) => {
-            const profile = json.qdup.run.profiles["scalelab-setup@f03-h01-000-r620"] ? 
-                json.qdup.run.profiles["scalelab-setup@f03-h01-000-r620"] : 
-                json.qdup.run.profiles["serverless-setup@mwperf-server01."]
+            const keys = Object.keys(json.qdup.run.profiles)
+            let key = keys.find(k=>k.startsWith("create-namespaces-with-signal"))
+            if(!key){
+                key = keys.find(k=>k.startsWith("scalelab-setup@f03-h01-000-r620"))
+            }else if (!key){
+                key = keys.find(k=>k.k.startsWith("serverless-setup@mwperf-server01."))
+            }
+            console.log("lastServiceStop.key",key)
+            const profile = json.qdup.run.profiles[key]
+            
             if(profile){
                 const services = profile.timers
                 .filter(timer=>
@@ -146,9 +169,15 @@ const accessors = {
             }
         }`,
         createNamespace: `(json) => {
-            const profile = json.qdup.run.profiles["scalelab-setup@f03-h01-000-r620"] ? 
-                json.qdup.run.profiles["scalelab-setup@f03-h01-000-r620"] : 
-                json.qdup.run.profiles["serverless-setup@mwperf-server01."]
+            const keys = Object.keys(json.qdup.run.profiles)
+            let key = keys.find(k=>k.startsWith("create-namespaces-with-signal"))
+            if(!key){
+                key = keys.find(k=>k.startsWith("scalelab-setup@f03-h01-000-r620"))
+            }else if (!key){
+                key = keys.find(k=>k.k.startsWith("serverless-setup@mwperf-server01."))
+            }
+            console.log("createNamespace.key",key)
+            const profile = json.qdup.run.profiles[key]
             if(profile){
                 return profile.timers
                 .filter(timer=>
@@ -160,9 +189,16 @@ const accessors = {
             }
         }`,
         createService: `(json) => {
-            const profile = json.qdup.run.profiles["scalelab-setup@f03-h01-000-r620"] ? 
-                json.qdup.run.profiles["scalelab-setup@f03-h01-000-r620"] : 
-                json.qdup.run.profiles["serverless-setup@mwperf-server01."]
+            const keys = Object.keys(json.qdup.run.profiles)
+            let key = keys.find(k=>k.startsWith("create-namespaces-with-signal"))
+            if(!key){
+                key = keys.find(k=>k.startsWith("scalelab-setup@f03-h01-000-r620"))
+            }else if (!key){
+                key = keys.find(k=>k.k.startsWith("serverless-setup@mwperf-server01."))
+            }
+            console.log("createService.key",key)
+            const profile = json.qdup.run.profiles[key]
+            console.log(typeof profile,Object.keys(profile))
             if(profile){
                 return profile.timers
                 .filter(timer=>
@@ -177,7 +213,7 @@ const accessors = {
     }
 };
 
-const isActiveFn = (props)=>{console.log("isActiveFn",props);return props.isActive ? "pf-m-current" : "not_active"}
+const isActiveFn = (props)=>{return props.isActive ? "pf-m-current" : "not_active"}
 
 export default () => {
     console.log("Runs",Date.now())
@@ -191,7 +227,9 @@ export default () => {
         specjEnterprise: 'specj',
         techempower: 'techempower',
         coldStart: 'coldStart',
-        eventingHyperfoil: "eventingHyperfoil"
+        eventingHyperfoil: "eventingHyperfoil",
+        serverlessCapacity: "serverlessCapacity",
+        omb: "omb"
     }
 
     const columns = {
@@ -306,6 +344,38 @@ export default () => {
             { Header: "stats", accessor: "data.statCount" },
             { Header: "failures", accessor: "data.failureCount" },
 
+        ],
+        omb: [
+            {Header: "name", accessor: "file"},
+            {
+                Header: 'start', accessor: ({ data: { start, stop } }, rowIndex) => {
+                    return DateTime.fromMillis(start).toFormat("yyyy-MM-dd HH:mm:ss")
+                }
+            },
+            {
+                Header: 'stop', accessor: ({ data: { start, stop } }, rowIndex) => {
+                    return DateTime.fromMillis(stop).toFormat("yyyy-MM-dd HH:mm:ss")
+                }
+            },
+            {Header: "duration", accessor: "data.duration"},
+            {Header: "driver", accessor: "data.driver"},
+            {Header: "workload", accessor: "data.workload"}
+        ],
+        serverlessCapacity: [
+            {Header: "name", accessor: "file"},
+            {
+                Header: 'start', accessor: ({ data: { start, stop } }, rowIndex) => {
+                    return DateTime.fromMillis(start).toFormat("yyyy-MM-dd HH:mm:ss")
+                }
+            },
+            {
+                Header: 'stop', accessor: ({ data: { start, stop } }, rowIndex) => {
+                    return DateTime.fromMillis(stop).toFormat("yyyy-MM-dd HH:mm:ss")
+                }
+            },
+            {Header: "duration", accessor: "data.duration"},
+            {Header: "pods", accessor: "data.pods"},
+            {Header: "ksvc", accessor: "data.ksvcs"}
         ],
         createNamespace: [
             {
@@ -481,6 +551,7 @@ export default () => {
     const [selectedRows, setSelectedRows] = useState({});
     const [orderedRows, setOrderedRows] = useState([]);
     const data = useSelector(state => {
+        console.log("Runs.useSelector",state)
         return state.groups[groupId] || []
     });
 
@@ -511,7 +582,7 @@ export default () => {
         setOrderedRows([])
         dispatch(
             actions.fetchGroup(groupId, accessors[groupId] || {}))
-    }, [groupId])
+    }, [groupId,setOrderedRows, setSelectedRows])
     const Header = (
         <PageHeader
             headerTools={
@@ -563,11 +634,23 @@ export default () => {
                             create namespaces
                         </NavLink>
                     </NavItem>
+                    <NavItem itemId={0} isActive={false}>
+                        <NavLink end to="/serverlessCapacity" className={isActiveFn}>
+                            capacity
+                        </NavLink>
+                    </NavItem>
                 </NavGroup>
                 <NavGroup title="Openshift Eventing">
                     <NavItem itemId={0} isActive={false}>
                         <NavLink end to="/eventingHyperfoil" className={isActiveFn}>
                             hyperfoil testcase
+                        </NavLink>
+                    </NavItem>
+                </NavGroup>
+                <NavGroup title="Kafka">
+                    <NavItem itemId={0} isActive={false}>
+                        <NavLink end to="/omb" className={isActiveFn}>
+                            openmessaging benchmark
                         </NavLink>
                     </NavItem>
                 </NavGroup>

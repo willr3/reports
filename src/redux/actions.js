@@ -20,17 +20,25 @@ const encode = (accessors)=>{
 }
 export const fetchSearch = (groupId="",search="",callBack=()=>{})=>()=>{
     const qa = qs.parse(search)
-    const {q=[],path="api/data",suffix=".json",token="",...rest} = qa;
+    const {q=[],token=false,...rest} = qa;
+    const toUse= token ? `/api/horreum/run` : `/api/data/${groupId}`
+    const suffix = token ? '' : '.json'
+    
+    
     const names = (q && Array.isArray(q) ? q : [q]).filter(v => v) //removes undefined
     const getIt = async () => {
         const ary = await Promise.all(
             names.map(name => {
                 const file = name.includes("=") ? name.substring(0,name.indexOf("=")) : name
                 const alias = name.includes("=") ? name.substring(name.indexOf("=")+1,name.length) : name
-                return axios.get(`/api/data/${groupId}/${file}.json`,{
-                    params: {
-                        token: token
-                    }
+                const fetchPath = `${toUse}/${file}${suffix}`
+                console.log("fetchPath",fetchPath)
+                let params = {}
+                if(token){
+                    params.token=token
+                }
+                return axios.get(fetchPath,{
+                    params
                 }).then(response =>(
                 {
                     ...response,

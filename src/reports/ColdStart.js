@@ -1,11 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import jsonpath from 'jsonpath';
-import { useLocation, useParams } from "react-router"
+import { useLocation } from "react-router"
 import { Helmet } from "react-helmet";
 //import { AutoSizer } from 'react-virtualized';
 import '@patternfly/patternfly/patternfly.css'; //have to use this import to customize scss-variables.scss
 import '../App.css';
-import reducer from '../domain/reducer';
 import { getStats } from '../domain/stats';
 import * as Charts from '../domain/charts';
 import { fetchSearch } from '../redux/actions';

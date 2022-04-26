@@ -1,37 +1,13 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import axios from 'axios';
-import jsonpath from 'jsonpath';
-import { DateTime, Duration } from 'luxon'
-import * as qs from 'query-string';
-import { useHistory, useParams, useLocation } from "react-router"
-import {
-    Area,
-    Bar,
-    Label,
-    Legend,
-    ComposedChart,
-    Line,
-    CartesianGrid,
-    XAxis,
-    YAxis,
-    Tooltip,
-    ReferenceArea,
-    ReferenceLine,
-    ResponsiveContainer,
-} from 'recharts';
+import { DateTime } from 'luxon'
 import { Helmet } from "react-helmet";
+import { useLocation } from "react-router"
+//import { Helmet } from "react-helmet";
 //import { AutoSizer } from 'react-virtualized';
 import '@patternfly/patternfly/patternfly.css'; //have to use this import to customize scss-variables.scss
 import '../App.css';
-import reducer, { apply } from '../domain/reducer';
-import { getCdf, getBuckets, getStats } from '../domain/stats';
 import {PrometheusChart} from '../domain/prometheus';
-import * as Charts from '../domain/charts';
 import { fetchSearch } from '../redux/actions';
-
-import ChartContainer from '../components/ChartContainer';
-import OverloadTooltip from '../components/OverloadTooltip';
-import theme, { chartColors, chartColorNames } from '../theme';
 
 import {Table} from '../domain/charts';
 import {HyperfoilCharts} from '../domain/hyperfoil'
@@ -89,6 +65,9 @@ function EventingHyperfoil(){
 
     return (
         <div className="pf-c-content">
+            <Helmet>
+                <title>eventing HF {data.map(getId).join(" ")}</title>
+            </Helmet>
             <div className="pf-c-card">
                 <div className="pf-c-card__body">
                     <h1>eventing-hyperfoil-benchmark</h1>

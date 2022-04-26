@@ -9,6 +9,12 @@
     /* height:28px; */
     /* height:36px; */
 }
+.panel-edit {
+    visibility: hidden;
+}
+.panel-header:hover .panel-edit{
+    visibility: visible;
+}
 .panel-content {
     display: flex;
     flex: 1;

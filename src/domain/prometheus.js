@@ -1,9 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import {
-    Area,
-    Bar,
-    Label,
-    Legend,
     ComposedChart,
     Line,
     CartesianGrid,
@@ -11,17 +7,15 @@ import {
     YAxis,
     Tooltip,
     ReferenceArea,
-    ReferenceLine,
     ResponsiveContainer,
 } from 'recharts';
 import jsonpath from 'jsonpath';
-import { DateTime, Duration } from 'luxon'
+import { Duration } from 'luxon'
 import theme, { chartColors, chartColorNames } from '../theme';
 import reducer, { apply } from '../domain/reducer';
 import { useZoom } from './charts';
 
 import ChartContainer from '../components/ChartContainer';
-import OverloadTooltip from '../components/OverloadTooltip';
 
 export const getPrometheusCategorySum = (getCategory,stat="cpu" /*mem*/,cfg={}) => (datum, datumIndex, datasets) =>{
     const {
@@ -89,23 +83,25 @@ export const getPrometheusSum = (filter, target = "pod" /*namespace*/, stat = "c
     return rtrn
 }
 
-export const PrometheusChart = ({
-    data=[], 
-    search="",
-    target = "pod", 
-    stat = "cpu", 
-    title=`${target} ${search} Σ(${stat})`,
-    leftLabel=`${stat}`, 
-    rightLabel="",
-    domainLabel="elapsed time",
-    domain=['auto','auto'], 
-    setDomain=false,
-    formatter=(v)=>v,
-    tickFormatter=(v)=>v, 
-    labelFormatter=(v) => Duration(v).toFormat("hh:mm"),
-    getName = (datum, datumIndex, datasets) => datum.name,
-    ...rest
-}) => {
+export const PrometheusChart = (props) => {
+    const {
+        data=[], 
+        search="",
+        target = "pod", 
+        stat = "cpu", 
+        title=`${target} ${search} Σ(${stat})`,
+        leftLabel=`${stat}`, 
+        rightLabel="",
+        domainLabel="elapsed time",
+        domain=['auto','auto'], 
+        setDomain=false,
+        formatter=(v)=>v,
+        tickFormatter=(v)=>v, 
+        labelFormatter=(v) => Duration(v).toFormat("hh:mm"),
+        getName = (datum, datumIndex, datasets) => datum.name,
+        children,
+        ...rest
+    } = props;
     const zoom = useZoom();
     const labels = data.reduce((rtrn, datum, datumIndex) => {
         rtrn[getName(datum, datumIndex, data)] = chartColors[datumIndex % chartColors.length]
@@ -253,14 +249,15 @@ export const PrometheusChart = ({
                                 yAxisId={0}
                                 name={`${datum.name}`}
                                 dataKey={`${datum.name}-oc`}
-                                stroke={theme.colors.chart[chartColorNames[datumIndex]][1]}
-                                fill={theme.colors.chart[chartColorNames[datumIndex]][1]}
+                                stroke={theme.colors.chart[chartColorNames[datumIndex]][0]}
+                                fill={theme.colors.chart[chartColorNames[datumIndex]][0]}
                                 connectNulls={true}
                                 dot={false}
                                 isAnimationActive={false}
                                 style={{ strokeWidth: 2 }}
                             />
                         ))}
+                        {children}
                         {/* <ReferenceArea yAxisId={0} x1={11700} x2={17160} strokeOpacity={0.3} /> */}
                         {setDomain && zoom.left && zoom.right ?
                             (<ReferenceArea yAxisId={0} x1={zoom.left} x2={zoom.right} strokeOpacity={0.3} />)

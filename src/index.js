@@ -17,6 +17,8 @@ import Hyperfoil from './reports/Hyperfoil';
 import TechEmpower from './reports/TechEmpower';
 import ColdStart from './reports/ColdStart';
 import EventingHyperfoil from './reports/EventingHyperfoil';
+import ServerlessCapacity from './reports/ServerlessCapacity';
+import Omb from './reports/Omb';
 import ReportBuilder from './ReportBuilder';
 
 import UPlot from './UPlot';
@@ -49,6 +51,8 @@ ReactDOM.render(
                 <Route path="/report/techempower" element={<TechEmpower/>}/>
                 <Route path="/report/coldStart" element={<ColdStart/>}/>
                 <Route path="/report/eventingHyperfoil" element={<EventingHyperfoil/>}/>
+                <Route path="/report/serverlessCapacity" element={<ServerlessCapacity/>}/>
+                <Route path="/report/omb" element={<Omb/>}/>
                 <Route path="/test/uplot" element={<UPlot/>}/>
                 <Route path="/test/report" element={<ReportBuilder></ReportBuilder>}/>
                 <Route path="/:groupId" element={<Runs/>}/>

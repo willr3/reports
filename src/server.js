@@ -111,7 +111,7 @@ app.get("/api/horreum/run/:runId", async (req, res) => {
     let { runId = "" } = req.params
     let { token = "" } = req.query
     try{
-        const data = await axiosInstance.get(`https://horreum.usersys.redhat.com:8443/api/run/${runId}/data`,
+        const data = await axiosInstance.get(`https://horreum.corp.redhat.com/api/run/${runId}/data`,
         {
             params: req.query
         })

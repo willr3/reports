@@ -119,13 +119,13 @@ app.get("/api/horreum/run/:runId", async (req, res) => {
     } catch (wtf) {
         console.error("wtf", wtf);
         res.status(400).json({
-            error: JSON.stringify(wtf)
+            error: `error fetching ${runId}`
         })
     }
 })
 app.post("/api/map", async (req, res) => {
-    try {
-        let { accessors, files } = req.body;
+    let { accessors, files } = req.body;
+    try {        
         if (accessors) {
             Object.keys(accessors).forEach(key => {
                 const value = accessors[key].trim()
@@ -193,7 +193,8 @@ app.post("/api/map", async (req, res) => {
     } catch (wtf) {
         console.error("wtf", wtf);
         res.status(400).json({
-            error: JSON.stringify(wtf)
+            error: `mapping error`,
+            accessors, files
         })
     }
 })
@@ -225,7 +226,7 @@ app.post("/api/data/:groupId/:name", upload.array(), async (req, res) => {
         (error) => {
             console.log("error", error)
             res.status(400).json({
-                error: JSON.stringify(error)
+                error: `error uploading to ${groupId}/${name}`
             })
         }
     )
@@ -243,7 +244,7 @@ app.delete("/api/data/:groupId/:name", upload.array(), async (req, res) => {
     },
     (error)=>{
         res.status(400).json({
-            error: JSON.stringify(error)
+            error: `error deleting ${groupId}/${name}`
         })
     })
 })

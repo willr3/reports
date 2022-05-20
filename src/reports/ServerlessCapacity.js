@@ -32,12 +32,31 @@ function ServerlessCapacity(){
 
     console.log({data})
 
+    const getStart = (v)=>{
+        const rtrn = v.data.qdup.run.timestamps.start
+        const startKsvc = v.data.qdup.run.latches.startKsvc
+        return rtrn
+    }
+
     return (
         <div className="pf-c-content">
             <Helmet>
                 <title>capacity {data.map(v=>v.file).join(" ")}</title>
             </Helmet>
             <div className="pf-c-card">
+                <div className="pf-c-card__body">
+                <PrometheusChart 
+                    data={data}
+                    search={(v)=>v.namespace == "knative-serving-ingress"}
+                    target="pod"
+                    stat="cpu"
+                    title='knative-serving-ingress pods cpu'
+                    rightLabel=" "
+                    domain={currentDomain}
+                    getStart={getStart}
+                    setDomain={setDomain}
+                />
+
                 <PrometheusChart 
                     data={data}
                     search=""
@@ -46,10 +65,7 @@ function ServerlessCapacity(){
                     title='all pods Σ(cpu)'
                     rightLabel=" "
                     domain={currentDomain}
-                    getStart={(v)=>{
-                        const rtrn = v.data.qdup.run.timestamps.start
-                        return rtrn
-                    }}
+                    getStart={getStart}
                     setDomain={setDomain}
                 />
                 <PrometheusChart 
@@ -60,10 +76,7 @@ function ServerlessCapacity(){
                     title='knative-serving-ingress namespace Σ(cpu)'
                     rightLabel=" "
                     domain={currentDomain}
-                    getStart={(v)=>{
-                        const rtrn = v.data.qdup.run.timestamps.start
-                        return rtrn
-                    }}
+                    getStart={getStart}
                     setDomain={setDomain}
                 />
                 <PrometheusChart 
@@ -74,10 +87,7 @@ function ServerlessCapacity(){
                     title='knative-serving namespace Σ(cpu)'
                     rightLabel=" "
                     domain={currentDomain}
-                    getStart={(v)=>{
-                        const rtrn = v.data.qdup.run.timestamps.start
-                        return rtrn
-                    }}
+                    getStart={getStart}
                     setDomain={setDomain}
                 />
                 <PrometheusChart 
@@ -88,10 +98,7 @@ function ServerlessCapacity(){
                     title='openshift-ovn-kubernetes namespace Σ(cpu)'
                     rightLabel=" "
                     domain={currentDomain}
-                    getStart={(v)=>{
-                        const rtrn = v.data.qdup.run.timestamps.start
-                        return rtrn
-                    }}
+                    getStart={getStart}
                     setDomain={setDomain}
                 />   
                 <PrometheusChart
@@ -99,11 +106,9 @@ function ServerlessCapacity(){
                     search="ovnkube-master"
                     target="pod"
                     stat="cpu"
+                    rightLabel=" "
                     domain={currentDomain}
-                    getStart={(v)=>{
-                        const rtrn = v.data.qdup.run.timestamps.start
-                        return rtrn
-                    }}
+                    getStart={getStart}
                     // title='ovnkube-master namespace Σ(cpu)'
 
                 />
@@ -112,15 +117,13 @@ function ServerlessCapacity(){
                     search="ovnkube-node"
                     target="pod"
                     stat="cpu"
+                    rightLabel=" "
                     domain={currentDomain}
-                    getStart={(v)=>{
-                        const rtrn = v.data.qdup.run.timestamps.start
-                        return rtrn
-                    }}
+                    getStart={getStart}
                     // title='ovnkube-master namespace Σ(cpu)'
 
                 />
-             
+                </div>
             </div>
         </div>
     )

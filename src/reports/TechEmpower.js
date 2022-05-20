@@ -73,6 +73,23 @@ const strToMs = (v, defaultValue = 0) => {
         return defaultValue;
     }
 }
+const domainKeys = {
+    "cached-query":"cachedQueryIntervals",
+    "db":"concurrencyLevels",
+    "fortune":"concurrencyLevels",
+    "json":"concurrencyLevels",
+    "plaintext":"pipelineConcurrencyLevels",
+    "query":"queryIntervals",
+    "update":"queryIntervals"
+}
+const domainNames = Object.entries(domainKeys).reduce((rtrn,entry)=>{
+    if(!rtrn[entry[1]]){
+        rtrn[entry[1]]=[]
+    }
+    rtrn[entry[1]].push(entry[0])
+    return rtrn
+},{})
+
 const pageBreakInside = { pageBreakInside: 'avoid' };
 const getTests = (json) => (Object.entries(json.rawData).filter(v => v[0] !== "commitCounts" && v[0] !== "slocCounts" && Object.getOwnPropertyNames(v[1]).length > 0).map(v => v[0]))
 function TechEmpower() {
@@ -87,94 +104,57 @@ function TechEmpower() {
 
     const allFrameworks = useMemo(() => [...new Set(data.flatMap(d => jsonpath.query(d, `$.data.frameworks[*]`)))], [data]);
     const allTests = useMemo(() => [...new Set(data.flatMap(v => getTests(v.data)))], [data])
+    
 
     const CUTOFF = 1
 
-    const frameworkSeries = useMemo(() => {
-        const rtrn = data.length > CUTOFF ? allFrameworks.reduce((rtrn, framework) => {
-            const entry = reducer(
-                data,
-                [
-                    { id: 'throughput', name: (v, i, a, x) => `${v.test}_${v.framework}_throughput` },
-                    { id: 'latencyMax', name: (v, i, a, x) => `${v.test}_${v.framework}_latencyMax` },
-                    { id: 'latencyAvg', name: (v, i, a, x) => `${v.test}_${v.framework}_latencyAvg` },
-                    { id: 'startTime', name: (v, i, a, x) => `${v.test}_${v.framework}_startTime` },
-                    { id: 'latencyStdev', name: (v, i, a, x) => `${v.test}_${v.framework}_latencyStdev` },
-                    { id: 'endTime', name: (v, i, a, x) => `${v.test}_${v.framework}_endTime` },
-                    { id: 'totalRequests', name: (v, i, a, x) => `${v.test}_${v.framework}_totalRequests` },
-                    { id: 'endOffset', name: (v, i, a, x) => `${v.test}_${v.framework}_endOffset` },
-                    { id: 'startOffset', name: (v, i, a, x) => `${v.test}_${v.framework}_startOffset` },
-                    { id: 'concurrency' }
-                ],
-                {
-                    getName: v => v.name,
-                    getDomain: 'concurrency',
-                    getSeries: (d, i, a) => {
-                        return getTests(d.data).flatMap((test, testIndex) => {
-                            return Object.entries(jsonpath.value(d, `$.data.rawData.${test}`)).flatMap(([framework, seriesData]) => {
-                                return seriesData.map((e, seriesIndex, x) => ({
-                                    test,
-                                    ...e,
-                                    throughput: (e.totalRequests) / (e.endTime - e.startTime),
-                                    concurrency: jsonpath.value(d, `$.data.concurrencyLevels[${seriesIndex}]`),
-                                    framework,
-                                    latencyMax: strToMs(e.latencyMax),
-                                    latencyAvg: strToMs(e.latencyAvg),
-                                    latencyStdev: strToMs(e.latencyStdev),
-                                    startOffset: e.startTime - x[0].startTime,
-                                    endOffset: e.endTime - x[0].startTime,
-                                }))
+    const mergedSeries = useMemo(
+        () => {
+            const rtrn = Object.keys(domainNames).reduce((reduced,domainName)=>{
+                reduced[domainName] = reducer(
+                    data,
+                    [
+                        { id: 'throughput', name: (v, i, a, x) => `${v.test}_${v.framework}_throughput` },
+                        { id: 'latencyMax', name: (v, i, a, x) => `${v.test}_${v.framework}_latencyMax` },
+                        { id: 'latencyAvg', name: (v, i, a, x) => `${v.test}_${v.framework}_latencyAvg` },
+                        { id: 'startTime', name: (v, i, a, x) => `${v.test}_${v.framework}_startTime` },
+                        { id: 'latencyStdev', name: (v, i, a, x) => `${v.test}_${v.framework}_latencyStdev` },
+                        { id: 'endTime', name: (v, i, a, x) => `${v.test}_${v.framework}_endTime` },
+                        { id: 'totalRequests', name: (v, i, a, x) => `${v.test}_${v.framework}_totalRequests` },
+                        { id: 'endOffset', name: (v, i, a, x) => `${v.test}_${v.framework}_endOffset` },
+                        { id: 'startOffset', name: (v, i, a, x) => `${v.test}_${v.framework}_startOffset` },    
+                    ],
+                    {
+                        getName: v=>v.name,
+                        getDomain: 'id',
+                        getSeries: (d, i, a) => {
+                            return getTests(d.data).flatMap((test, testIndex) => {
+                                return Object.entries(jsonpath.value(d, `$.data.rawData.${test}`)).filter(([framework,seriesData])=>{
+                                    return domainKeys[test] === domainName
+                                    //return true
+                                }).flatMap(([framework, seriesData]) => {
+                                    return seriesData.map((e, seriesIndex, x) => ({
+                                        test,
+                                        ...e,
+                                        throughput: (e.totalRequests) / (e.endTime - e.startTime),
+                                        id: jsonpath.value(d, `$.data.${domainName}[${seriesIndex}]`),
+                                        framework,
+                                        latencyMax: strToMs(e.latencyMax),
+                                        latencyAvg: strToMs(e.latencyAvg),
+                                        latencyStdev: strToMs(e.latencyStdev),
+                                        startOffset: e.startTime - x[0].startTime,
+                                        endOffset: e.endTime - x[0].startTime,                                        
+                                    }))
+                                })
                             })
-                        })
+                        }
                     }
-                }
-            )
-            rtrn[framework] = entry;
-            return rtrn
-        }, {}) : reducer(
-            data,
-            [
-                { id: 'throughput', name: (v, i, a, x) => `${v.test}_${v.framework}_throughput` },
-                { id: 'latencyMax', name: (v, i, a, x) => `${v.test}_${v.framework}_latencyMax` },
-                { id: 'latencyAvg', name: (v, i, a, x) => `${v.test}_${v.framework}_latencyAvg` },
-                { id: 'startTime', name: (v, i, a, x) => `${v.test}_${v.framework}_startTime` },
-                { id: 'latencyStdev', name: (v, i, a, x) => `${v.test}_${v.framework}_latencyStdev` },
-                { id: 'endTime', name: (v, i, a, x) => `${v.test}_${v.framework}_endTime` },
-                { id: 'totalRequests', name: (v, i, a, x) => `${v.test}_${v.framework}_totalRequests` },
-                { id: 'endOffset', name: (v, i, a, x) => `${v.test}_${v.framework}_endOffset` },
-                { id: 'startOffset', name: (v, i, a, x) => `${v.test}_${v.framework}_startOffset` },
-                { id: 'concurrency' }
-            ],
-            {
-                getName: v => v.name,
-                //            getDomain: [v=>v.startOffset,v=>v.endOffset],
-                getDomain: 'concurrency',
-                getSeries: (d, i, a) => {
-                    return getTests(d.data).flatMap((test, testIndex) => {
-                        return Object.entries(jsonpath.value(d, `$.data.rawData.${test}`)).flatMap(([framework, seriesData]) => {
-                            return seriesData.map((e, seriesIndex, x) => {
-
-                                const rtrn = {
-                                    test,
-                                    ...e,
-                                    throughput: (e.totalRequests) / (e.endTime - e.startTime),
-                                    concurrency: jsonpath.value(d, `$.data.concurrencyLevels[${seriesIndex}]`),
-                                    framework,
-                                    latencyMax: strToMs(e.latencyMax),
-                                    latencyAvg: strToMs(e.latencyAvg),
-                                    latencyStdev: strToMs(e.latencyStdev),
-                                    startOffset: e.startTime - x[0].startTime,
-                                    endOffset: e.endTime - x[0].startTime,
-                                }
-                                return rtrn;
-                            })
-                        })
-                    })
-                }
-            }
-        )
-        return rtrn
-    }, [data])
+                )
+                return reduced
+            },{})
+            return rtrn;
+        }, [data, domainKeys, domainNames]
+    )
 
     const tableData = useMemo(() => {
 
@@ -218,7 +198,7 @@ function TechEmpower() {
                             const best = jsonpath.query(d, `$.data.rawData['${testName}']['${frameworkName}'][*]`)
                                 .map((stat, index) => ({
                                     index,
-                                    concurrency: jsonpath.value(d, `$.data.concurrencyLevels[${index}]`),
+                                    concurrency: jsonpath.value(d, `$.data.${domainKeys[testName]||"concurrencyLevels"}[${index}]`),
                                     tps: Math.round(stat.totalRequests / (stat.endTime - stat.startTime))
                                 }))
                                 .reduce(
@@ -253,80 +233,72 @@ function TechEmpower() {
         , [location.search, setData])
 
     const testNames = useMemo(() => [...new Set(data.flatMap(v => getTests(v.data)))], [data])
-
-    const content = useMemo(() => {
-        const rtrn = (data.length === 0 ? (<div>Loading</div>) : data.length > CUTOFF ?
-            testNames.flatMap((testName, testIndex) => (
-                Object.entries(frameworkSeries).map(([frameworkName, seriesData], index) => {
-                    return (
-                        <Card key={testIndex} style={{ padding: '10px' }}>
-                            <ChartContainer
-                                title={<Title headingLevel="h2" size="2xl">{`${testName} ${frameworkName}`}</Title>}
-                                leftLabel="tps"
-                                domainLabel="concurrency"
-                                labels={
-                                    data.reduce((rtrn, datum, datumIndex) => {
-                                        rtrn[datum.name] = chartColors[datumIndex & chartColors.length]
-                                        return rtrn;
-                                    }, {})
-                                }
-                            >
-                                <ResponsiveContainer width="100%" height={360}>
-                                    <ComposedChart
-                                        data={frameworkSeries[frameworkName]}
-                                        style={{ userSelect: 'none' }}
+    
+    const newContent = useMemo(() => {
+        return data.length == 0 ? (<div>Loading...</div>) : testNames.flatMap((testName,testIndex)=>{
+            return allFrameworks.map((frameworkName,frameworkIndex)=>{
+                const domainKey = domainKeys[testName]
+                return (
+                    <Card key={testIndex} style={{padding: '10px'}}>
+                        <ChartContainer
+                            title={<Title headingLevel="h2" size="2xl">{`${testName} ${frameworkName}`}</Title>}
+                            leftLabel="tps"
+                            domainLabel="concurrency"
+                            labels={
+                                data.reduce((rtrn, datum, datumIndex) => {
+                                    rtrn[datum.name] = chartColors[datumIndex % chartColors.length]
+                                    return rtrn;
+                                }, {})
+                            }
+                        >
+                            <ResponsiveContainer width="100%" height={360}>
+                                <ComposedChart
+                                    data={mergedSeries[domainKey]}
+                                    style={{ userSelect: 'none' }}
+                                >
+                                    <CartesianGrid strokeDasharray="3 3" />
+                                    <Tooltip
+                                        formatter={(e) => Number(e).toFixed(0)}
+                                    //labelFormatter={(v) => Duration(v).toFormat("mm:ss")}
+                                    />
+                                    <XAxis
+                                        allowDataOverflow={true}
+                                        type="category"
+                                        //scale="time"
+                                        dataKey="__domainValue"
+                                        domain={['auto', 'auto']}
+                                        labelFormatter={(v) => Duration(v).toFormat("mm:ss")}
                                     >
-                                        <CartesianGrid strokeDasharray="3 3" />
-                                        <Tooltip
-                                            formatter={(e) => Number(e).toFixed(0)}
-                                        //labelFormatter={(v) => Duration(v).toFormat("mm:ss")}
-                                        />
-                                        {/* <Legend align="left" payload={data.map((datum, datumIndex) => ({
-                                            color: colors[colorNames[datumIndex % colorNames.length]][0],
-                                            fill: colors[colorNames[datumIndex % colorNames.length]][0],
-                                            type: 'rect',
-                                            value: datum.name
+                                        {/* <Label
+                                            value="concurrency"
+                                            position="insideBottom"
+                                            angle={0}
+                                            offset={0}
+                                            textAnchor='middle'
+                                            style={{ textAnchor: 'middle' }}
+                                        /> */}
+                                    </XAxis>
+                                    <YAxis
+                                        // width={40}
+                                        yAxisId={0}
+                                        orientation="left"
+                                        allowDataOverflow={true}
+                                        domain={['auto', 'auto']}
+                                        tickFormatter={(v) => (v / 1000) + 'k'}
+                                    >
+                                        {/* <Label
+                                            value="tps"
+                                            position="insideLeft"
+                                            angle={-90}
+                                            offset={0}
+                                            textAnchor='middle'
+                                            style={{ textAnchor: 'middle' }}
 
-                                        }))} 
-                                        />*/}
-                                        <XAxis
-                                            allowDataOverflow={true}
-                                            type="category"
-                                            //scale="time"
-                                            dataKey="__domainValue"
-                                            domain={['auto', 'auto']}
-                                            labelFormatter={(v) => Duration(v).toFormat("mm:ss")}
-                                        >
-                                            {/* <Label
-                                                value="concurrency"
-                                                position="insideBottom"
-                                                angle={0}
-                                                offset={0}
-                                                textAnchor='middle'
-                                                style={{ textAnchor: 'middle' }}
-                                            /> */}
-                                        </XAxis>
-                                        <YAxis
-                                            // width={40}
-                                            yAxisId={0}
-                                            orientation="left"
-                                            allowDataOverflow={true}
-                                            domain={['auto', 'auto']}
-                                            tickFormatter={(v) => (v / 1000) + 'k'}
-                                        >
-                                            {/* <Label
-                                                value="tps"
-                                                position="insideLeft"
-                                                angle={-90}
-                                                offset={0}
-                                                textAnchor='middle'
-                                                style={{ textAnchor: 'middle' }}
-
-                                            //position="insideTopLeft" 
-                                            //offset={10}    
-                                            /> */}
-                                        </YAxis>
-                                        {
+                                        //position="insideTopLeft" 
+                                        //offset={10}    
+                                        /> */}
+                                    </YAxis>
+                                    {
                                             data.flatMap((datum, datumIndex) => {
                                                 const pallet = colors[colorNames[datumIndex % colorNames.length]]
                                                 return ["throughput"].map((statName, statIndex) => {
@@ -346,110 +318,14 @@ function TechEmpower() {
                                                 })
                                             })
                                         }
-                                    </ComposedChart>
-                                </ResponsiveContainer>
-                            </ChartContainer>
-                        </Card>
-                    )
-                }
-
-                )))
-            :
-            testNames.map((testName, testIndex) => (
-                <Card key={testIndex} style={{ padding: '10px' }}>
-                    <ChartContainer
-                        title={<Title headingLevel="h2" size="2xl">{`${testName}`}</Title>}
-                        leftLabel="tps"
-                        domainLabel="concurrency"
-                        labels={allFrameworks.reduce((rtrn, framework, frameworkIndex) => {
-                            rtrn[framework] = chartColors[frameworkIndex % chartColors.length];
-                            return rtrn;
-                        }, {})}
-                    >
-                        <ResponsiveContainer width="100%" height={360}>
-                            <ComposedChart
-                                data={frameworkSeries}
-                                style={{ userSelect: 'none' }}
-                            >
-                                <CartesianGrid strokeDasharray="3 3" />
-                                <Tooltip
-                                    formatter={(e) => Number(e).toFixed(0)}
-                                //labelFormatter={(v) => Duration(v).toFormat("mm:ss")}
-                                />
-                                {/* <Legend align="left" payload={allFrameworks.map((framework, frameworkIndex) => ({
-                                    color: colors[colorNames[frameworkIndex % colorNames.length]][0],
-                                    fill: colors[colorNames[frameworkIndex % colorNames.length]][0],
-                                    type: 'rect',
-                                    value: framework
-                                }))}
-                                /> */}
-                                <XAxis
-                                    allowDataOverflow={true}
-                                    type="category"
-                                    //scale="time"
-                                    dataKey="__domainValue"
-                                    domain={['auto', 'auto']}
-                                    labelFormatter={(v) => Duration(v).toFormat("mm:ss")}
-                                >
-                                    {/* <Label
-                                        value="concurrency"
-                                        position="insideBottom"
-                                        angle={0}
-                                        offset={0}
-                                        textAnchor='middle'
-                                        style={{ textAnchor: 'middle' }}
-                                    /> */}
-                                </XAxis>
-                                <YAxis
-                                    // width={80}
-                                    yAxisId={0}
-                                    orientation="left"
-                                    allowDataOverflow={true}
-                                    domain={['auto', 'auto']}
-                                    tickFormatter={(v) => (v / 1000) + 'k'}
-                                >
-                                    {/* <Label
-                                        value="tps"
-                                        position="insideLeft"
-                                        angle={-90}
-                                        offset={0}
-                                        textAnchor='middle'
-                                        style={{ textAnchor: 'middle' }}
-                                    /> */}
-                                </YAxis>
-                                {allFrameworks.flatMap((frameworkName, frameworkIndex) => {
-                                    const pallet = colors[colorNames[frameworkIndex % colorNames.length]]
-                                    return ["throughput"].map((statName, statIndex) => {
-                                        const key = `${data[0].name}-${testName}_${frameworkName}_${statName}`
-                                        return (<Bar
-                                            key={key}
-                                            dataKey={key}
-                                            name={frameworkName}
-                                            yAxisId={0}
-                                            unit=""
-                                            stroke={pallet[statIndex % pallet.length]}
-                                            fill={pallet[statIndex % pallet.length]}
-                                            connectNulls
-                                            type="monotone"
-                                            isAnimationActive={false}
-                                        />)
-                                    })
-
-                                })
-
-                                }
-
-                            </ComposedChart>
-                        </ResponsiveContainer>
-                    </ChartContainer>
-
-
-                </Card>
-            ))
-        )
-        return rtrn;
-    }, [data, frameworkSeries, testNames, allFrameworks]);
-
+                                </ComposedChart>
+                            </ResponsiveContainer>
+                        </ChartContainer>
+                    </Card>
+                )
+            })
+        })
+    },[data,mergedSeries,testNames,allFrameworks]);
     const Header = (
         <PageHeader
             toolbar={
@@ -579,7 +455,7 @@ function TechEmpower() {
             </PageSection> */}
             <PageSection isFilled={true}>
                 <Stack gutter="md">
-                    {Array.isArray(content) ? (content.map((v, i) => (<StackItem key={i}>{v}</StackItem>))) : (<StackItem>{content}</StackItem>)}
+                    {Array.isArray(newContent) ? (newContent.map((v, i) => (<StackItem key={i}>{v}</StackItem>))) : (<StackItem>{newContent}</StackItem>)}
                 </Stack>
             </PageSection>
         </Page>

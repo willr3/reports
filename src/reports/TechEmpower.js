@@ -129,7 +129,7 @@ function TechEmpower() {
                         getDomain: 'id',
                         getSeries: (d, i, a) => {
                             return getTests(d.data).flatMap((test, testIndex) => {
-                                return Object.entries(jsonpath.value(d, `$.data.rawData.${test}`)).filter(([framework,seriesData])=>{
+                                return Object.entries(jsonpath.value(d, `$.data.rawData["${test}"]`)).filter(([framework,seriesData])=>{
                                     return domainKeys[test] === domainName
                                     //return true
                                 }).flatMap(([framework, seriesData]) => {

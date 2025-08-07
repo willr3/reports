@@ -10,11 +10,11 @@ COPY package*.json ./
 
 COPY . .
 
-RUN npm install
+RUN npm install --force
 
 RUN npm install -g webpack@4.44.2
 RUN npm install -g webpack-cli
-RUN npm install webpack-node-externals
+RUN npm install webpack-node-externals --force
 RUN npm install -g babel-polyfill
 
 # If you are building your code for production
